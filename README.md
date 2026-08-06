@@ -10,6 +10,8 @@ CipherWatch detects insider threat data exfiltration (USB transfers, unauthorize
 
 1. **Endpoint Agent & Scenario Simulator (Metadata-Only):**
    - Monitors filesystem events, USB insertions, process launches, and network connections (`watchdog`, `psutil`).
+   - Configurable watch scope (`targeted` vs `full_home`) with noise exclusion lists (`.git`, `node_modules`, `.venv`, `.next`, etc.) and automated inotify limit safety checks.
+   - *Note on benchmarking & inotify*: Baseline directory counts on developer machines (e.g. `~/Desktop` containing code repositories) will be significantly higher than on standard end-user endpoints. In `full_home` mode, inotify watch consumption (e.g. ~57% on dev setups) shares system limits with IDEs and sync tools — evaluate per-deployment to prevent `ENOSPC` watch exhaustion.
    - Features robust `PermissionError` handling in filesystem monitors to gracefully bypass restricted paths without crashing.
    - Enforces an organization-scoped agent enrollment flow (`/api/agent/enroll`) with secure bearer token authentication and periodic heartbeats (`/api/heartbeat`).
    - Asynchronously batches telemetry payloads and flushes them directly to `POST /api/agents/{agent_id}/events`.

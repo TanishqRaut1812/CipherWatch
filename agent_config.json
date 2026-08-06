@@ -1,7 +1,7 @@
 {
-  "agent_id": "agent_4c597d763a38",
-  "auth_token": "cw_agent_e3dd23f2f21eaeca7347893bf0136ae1f41e666b36395a59",
+  "agent_id": "agent_4406a0a304f2",
+  "auth_token": "cw_agent_9d58ff88f49f1eb72fc45ab2f65587092d0ef5caf427a3dc",
   "backend_url": "http://localhost:8000",
-  "org_id": "04c4150a-d9fe-4c65-b37a-f620146b55e8",
+  "org_id": "388ad81d-5951-41b9-9063-1f0f2889ae91",
   "device_uuid": "b12cd9fc-e353-4cad-89eb-788fcf303e02"
 }

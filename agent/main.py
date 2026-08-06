@@ -6,6 +6,7 @@ import json
 import time
 import os
 import threading
+import signal
 import uuid
 from typing import Optional
 import httpx
@@ -221,34 +222,29 @@ def run_agent(args) -> None:
 
     # Start monitors
     monitors = []
+    agent_config = AgentConfig()
     
     # 1. Process Monitor
     pm = ProcessMonitor(
-        poll_interval=3.0,
+        poll_interval=agent_config.poll_interval,
         user_id=args.user_id,
         device_id=agent_id,
         callback=on_event_emitted
     )
     monitors.append(pm)
 
-    # 2. Filesystem Monitor (Real User Directory: Downloads)
-    watch_path = os.path.expanduser("~/Downloads")
-    if not os.path.exists(watch_path):
-        watch_path = os.path.expanduser("~/Documents")
-    if not os.path.exists(watch_path):
-        os.makedirs(watch_path, exist_ok=True)
+    # 2. Filesystem Monitor (config-driven multi-path scope)
     fm = FilesystemMonitor(
-        watch_path=watch_path,
+        config=agent_config,
         user_id=args.user_id,
         device_id=agent_id,
-        callback=on_event_emitted
+        callback=on_event_emitted,
     )
     monitors.append(fm)
 
-
     # 3. USB Monitor
     um = USBMonitor(
-        poll_interval=2.0,
+        poll_interval=agent_config.poll_interval,
         user_id=args.user_id,
         device_id=agent_id,
         callback=on_event_emitted
@@ -257,7 +253,7 @@ def run_agent(args) -> None:
 
     # 4. Network Monitor
     nm = NetworkMonitor(
-        poll_interval=3.0,
+        poll_interval=agent_config.poll_interval,
         user_id=args.user_id,
         device_id=agent_id,
         callback=on_event_emitted
@@ -272,23 +268,33 @@ def run_agent(args) -> None:
         except Exception as e:
             logger.error(f"Failed to start monitor {monitor.__class__.__name__}: {e}")
 
-    logger.info(f"Monitored folder: {os.path.abspath(watch_path)}")
+    logger.info(f"Watch scope: {agent_config.watch_scope}")
     logger.info("Agent running. Press Ctrl+C to terminate.")
+
+    shutdown_triggered = threading.Event()
+
+    def signal_handler(signum, frame):
+        logger.info(f"Received shutdown signal ({signal.Signals(signum).name}). Initiating graceful teardown...")
+        shutdown_triggered.set()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Keep alive loop
     try:
-        while True:
-            time.sleep(1.0)
+        while not shutdown_triggered.is_set():
+            time.sleep(0.5)
     except KeyboardInterrupt:
-        logger.info("Terminating endpoint agent...")
+        logger.info("KeyboardInterrupt received.")
     finally:
+        logger.info("Cleaning up agent resources...")
         # Stop all monitors
         for monitor in monitors:
             try:
                 monitor.stop()
             except Exception:
                 pass
-        # Stop publisher
+        # Stop publisher (flushes queued events)
         publisher.stop()
         # Stop heartbeat
         stop_event.set()

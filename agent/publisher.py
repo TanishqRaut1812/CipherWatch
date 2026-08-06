@@ -133,6 +133,20 @@ class EventPublisher:
                     if resp.status_code in (200, 201):
                         agent_logger.debug(f"Batch payload delivered successfully ({len(events_batch)} items).")
                         return True
+                    elif resp.status_code == 429:
+                        retry_after = 5.0
+                        retry_hdr = resp.headers.get("Retry-After")
+                        if retry_hdr:
+                            try:
+                                retry_after = float(retry_hdr)
+                            except ValueError:
+                                pass
+                        agent_logger.warning(
+                            f"Rate limit exceeded (HTTP 429) from backend posting {len(events_batch)} items "
+                            f"(attempt {attempt+1}/{retries}). Backing off for {retry_after}s..."
+                        )
+                        time.sleep(retry_after)
+                        continue
                     else:
                         agent_logger.warning(
                             f"HTTP {resp.status_code} posting batch ({len(events_batch)} items) (attempt {attempt+1}/{retries}): {resp.text}"
@@ -178,5 +192,19 @@ class EventPublisher:
         """Stop publisher worker thread and wait for queue drain."""
         self.is_running = False
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=3.0)
+
+        # Final flush of remaining queued events
+        remaining = []
+        while not self.queue.empty():
+            try:
+                item = self.queue.get_nowait()
+                remaining.append(item)
+                self.queue.task_done()
+            except Exception:
+                break
+        if remaining:
+            agent_logger.info(f"Flushing {len(remaining)} remaining queued events before exit...")
+            self.send_batch(remaining)
+
         agent_logger.info("EventPublisher stopped.")
