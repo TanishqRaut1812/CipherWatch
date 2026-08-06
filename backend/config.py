@@ -10,11 +10,21 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     DEBUG: bool = True
     DATABASE_URL: str = "sqlite:///./cipherwatch.db"
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
-    JWT_SECRET_KEY: str = secrets.token_hex(32)  # Override in .env for production
+    JWT_SECRET_KEY: str = "cipherwatch_jwt_secret_key_change_in_production"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
+
+    @property
+    def normalized_database_url(self) -> str:
+        """Ensure PostgreSQL connection URLs start with postgresql:// for SQLAlchemy compatibility."""
+        url = self.DATABASE_URL
+        if url and url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
 
     model_config = SettingsConfigDict(
         env_file=".env",

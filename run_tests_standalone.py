@@ -7,6 +7,13 @@ from fastapi.testclient import TestClient
 
 
 def run_regression_tests():
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
     print("=" * 60)
     print("CipherWatch Backend Ingestion & Threat Engine Test Suite")
     print("=" * 60)
@@ -50,6 +57,7 @@ def run_regression_tests():
         "organization_id": creds.json()["organization_id"],
         "enrollment_key": creds.json()["enrollment_key"],
         "hostname": "prod-sec-workstation-01",
+        "machine_id": "prod-sec-workstation-01",
         "device_uuid": "dev-uuid-standalone-01",
         "os": "Linux 6.5.0-x86_64",
         "agent_version": "1.2.0",
