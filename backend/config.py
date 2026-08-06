@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./cipherwatch.db"
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
+    RESEND_API_KEY: str = ""
+    SENDER_EMAIL: str = "CipherWatch Security <onboarding@resend.dev>"
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     JWT_SECRET_KEY: str = "cipherwatch_jwt_secret_key_change_in_production"

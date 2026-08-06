@@ -49,4 +49,30 @@ class AlertService:
         db.add(alert)
         db.commit()
         db.refresh(alert)
+
+        if severity in ("CRITICAL", "HIGH"):
+            try:
+                from backend.db.models import AgentModel, OrganizationModel, UserModel
+                from backend.services.email_service import send_high_threat_alert_email
+
+                agent = db.query(AgentModel).filter(AgentModel.id == event.device_id).first()
+                if agent:
+                    org = db.query(OrganizationModel).filter(OrganizationModel.id == agent.org_id).first()
+                    if org and org.owner_user_id:
+                        owner = db.query(UserModel).filter(UserModel.id == org.owner_user_id).first()
+                        if owner and owner.email:
+                            send_high_threat_alert_email(
+                                admin_email=owner.email,
+                                org_name=org.name,
+                                device_name=agent.device_name or agent.hostname,
+                                hostname=agent.hostname,
+                                severity=severity,
+                                rule_id="ANOMALY_DETECTION",
+                                risk_score=risk_score,
+                                message=message,
+                                alert_time=alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                            )
+            except Exception:
+                pass
+
         return alert

@@ -1,33 +1,53 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from './RechartsCompat';
 
 export const RiskChart = ({ data }) => {
-  const [hoveredPoint, setHoveredPoint] = useState(null);
-
   // Default timeline data if none passed
   const chartData = data && data.length > 0 ? data : [
-    { time: '10:00', risk: 0.12, label: 'Baseline' },
-    { time: '10:15', risk: 0.18, label: 'Dev Activity' },
-    { time: '10:30', risk: 0.45, label: 'USB Insert' },
-    { time: '10:45', risk: 0.88, label: 'Archive Exfil' },
-    { time: '11:00', risk: 0.94, label: 'Cloud Upload' },
-    { time: '11:15', risk: 0.65, label: 'Post-Event' },
+    { time: '10:00', risk: 12, label: 'Baseline' },
+    { time: '10:15', risk: 18, label: 'Dev Activity' },
+    { time: '10:30', risk: 45, label: 'USB Insert' },
+    { time: '10:45', risk: 88, label: 'Archive Exfil' },
+    { time: '11:00', risk: 94, label: 'Cloud Upload' },
+    { time: '11:15', risk: 65, label: 'Post-Event' },
   ];
 
-  const width = 500;
-  const height = 180;
-  const padding = 30;
+  // Map values to 0-100 scale if 0-1 scale provided
+  const formattedData = chartData.map(d => ({
+    ...d,
+    score: d.risk > 1 ? d.risk : Math.round(d.risk * 100),
+  }));
 
-  const points = chartData.map((d, i) => {
-    const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
-    const y = height - padding - d.risk * (height - 2 * padding);
-    return { ...d, x, y };
-  });
-
-  const pathD = points.reduce((acc, point, i) => {
-    return i === 0 ? `M ${point.x} ${point.y}` : `${acc} L ${point.x} ${point.y}`;
-  }, '');
-
-  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const p = payload[0].payload;
+      const isHigh = p.score >= 70;
+      return (
+        <div
+          style={{
+            backgroundColor: '#0c0f1d',
+            border: `1px solid ${isHigh ? '#f6465d' : '#fcd535'}`,
+            borderRadius: '8px',
+            padding: '8px 14px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            color: '#f8fafc',
+            fontSize: '12px',
+          }}
+        >
+          <div style={{ fontWeight: '800', color: isHigh ? '#f6465d' : '#fcd535', marginBottom: '2px' }}>
+            {p.label || 'Timeline Event'} ({p.time})
+          </div>
+          <div>
+            Risk Score:{' '}
+            <span style={{ fontWeight: '900', color: isHigh ? '#f6465d' : '#0ecb81' }}>
+              {p.score}%
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="alert-feed-card" style={{ padding: '24px' }}>
@@ -40,97 +60,36 @@ export const RiskChart = ({ data }) => {
             Session Risk Progression
           </h3>
         </div>
-        <span className="body-sm tabular-nums" style={{ color: 'var(--colors-primary)', fontWeight: '600' }}>
-          ● LIVE TRACKING
+        <span className="body-sm tabular-nums" style={{ color: '#fcd535', fontWeight: '800' }}>
+          ● RECHARTS ENGINE LIVE
         </span>
       </div>
 
-      <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-          <defs>
-            <linearGradient id="riskGradientArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f6465d" stopOpacity="0.35" />
-              <stop offset="50%" stopColor="#fcd535" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#fcd535" stopOpacity="0.0" />
-            </linearGradient>
-            <linearGradient id="strokeGradientTrend" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#0ecb81" />
-              <stop offset="50%" stopColor="#ffe066" />
-              <stop offset="100%" stopColor="#ff6b7a" />
-            </linearGradient>
-            <filter id="currentPointGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Grid lines */}
-          {[0.25, 0.5, 0.75].map((val) => {
-            const y = height - padding - val * (height - 2 * padding);
-            return (
-              <line
-                key={val}
-                x1={padding}
-                y1={y}
-                x2={width - padding}
-                y2={y}
-                stroke="var(--colors-hairline-on-dark)"
-                strokeDasharray="4 4"
-              />
-            );
-          })}
-
-          {/* Filled Area */}
-          <path d={areaD} fill="url(#riskGradientArea)" />
-
-          {/* Stroke Path */}
-          <path d={pathD} fill="none" stroke="url(#strokeGradientTrend)" strokeWidth="3" strokeLinecap="round" />
-
-          {/* Data Points */}
-          {points.map((pt, idx) => {
-            const isLatest = idx === points.length - 1;
-            return (
-              <circle
-                key={idx}
-                cx={pt.x}
-                cy={pt.y}
-                r={hoveredPoint === idx ? 7 : isLatest ? 6 : 4}
-                fill={pt.risk > 0.7 ? '#ff6b7a' : pt.risk > 0.4 ? '#ffe066' : '#2effa2'}
-                stroke="var(--colors-canvas-dark)"
-                strokeWidth="2"
-                filter={isLatest ? 'url(#currentPointGlow)' : 'none'}
-                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
-                onMouseEnter={() => setHoveredPoint(idx)}
-                onMouseLeave={() => setHoveredPoint(null)}
-              />
-            );
-          })}
-        </svg>
-
-        {/* Hover Tooltip */}
-        {hoveredPoint !== null && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '10px',
-              left: `${(points[hoveredPoint].x / width) * 100}%`,
-              transform: 'translateX(-50%)',
-              background: 'var(--colors-canvas-dark)',
-              border: '1px solid var(--colors-hairline-on-dark)',
-              borderRadius: 'var(--rounded-sm)',
-              padding: '6px 12px',
-              fontSize: '11px',
-              color: 'var(--colors-on-dark)',
-              pointerEvents: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <strong>{points[hoveredPoint].label}</strong> ({points[hoveredPoint].time}):{' '}
-            <span className="tabular-nums" style={{ color: points[hoveredPoint].risk > 0.7 ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)' }}>
-              {(points[hoveredPoint].risk * 100).toFixed(0)}%
-            </span>
-          </div>
-        )}
+      <div style={{ width: '100%', height: 220 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="rechartsRiskGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f6465d" stopOpacity={0.45} />
+                <stop offset="50%" stopColor="#fcd535" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#0ecb81" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+            <YAxis domain={[0, 100]} stroke="#64748b" fontSize={11} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="score"
+              stroke="#fcd535"
+              strokeWidth={3}
+              fillOpacity={1}
+              fill="url(#rechartsRiskGradient)"
+              activeDot={{ r: 6, fill: '#f6465d', stroke: '#ffffff', strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

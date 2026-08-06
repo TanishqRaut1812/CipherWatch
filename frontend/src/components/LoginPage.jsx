@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Eye, EyeOff, ShieldCheck, Activity, Lock, Zap } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Activity, Lock, Zap, Search, AlertTriangle } from 'lucide-react'
 import PrivacyModal from './PrivacyModal'
 
 export default function LoginPage({
@@ -244,10 +244,13 @@ export default function LoginPage({
               fontSize: '12px',
               fontWeight: '600',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
               transition: 'all 200ms ease-out',
             }}
           >
-            🔍 Audit Privacy Policy
+            <Search size={13} /> Audit Privacy Policy
           </button>
         </div>
 
@@ -290,9 +293,12 @@ export default function LoginPage({
                 fontSize: '13px',
                 marginBottom: '20px',
                 lineHeight: '1.4',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              ⚠️ {authError}
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} /> {authError}
             </div>
           )}
 

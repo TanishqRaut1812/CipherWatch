@@ -12,6 +12,8 @@ import ZeroContentBand from './components/ZeroContentBand'
 import FaqSection from './components/FaqSection'
 import CtaBandDark from './components/CtaBandDark'
 import FooterLight from './components/FooterLight'
+import NotificationCenter from './components/NotificationCenter'
+import { Shield, Activity, AlertTriangle } from 'lucide-react'
 
 import LoginPage from './components/LoginPage'
 
@@ -341,8 +343,11 @@ export default function App() {
                 color: 'var(--colors-risk-escalating)',
                 fontSize: '13px',
                 marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}>
-                ⚠️ {authError}
+                <AlertTriangle size={16} style={{ flexShrink: 0 }} /> {authError}
               </div>
             )}
 
@@ -376,7 +381,7 @@ export default function App() {
                     </span>
                   </div>
                   <span style={{ color: 'var(--colors-primary)', fontSize: '13px', fontWeight: '600' }}>
-                    Enter →
+                    Select Workspace
                   </span>
                 </div>
               ))}
@@ -419,6 +424,18 @@ export default function App() {
   }
 
   // 4. Authenticated & Selected workspace: Full Dashboard Layout
+  if (activeView === 'admin') {
+    return (
+      <AdminDashboard
+        orgId={selectedOrg.id}
+        currentUser={currentUser}
+        onSwitchView={setActiveView}
+        onLogout={handleLogout}
+        onSwitchOrg={() => setSelectedOrg(null)}
+      />
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--colors-canvas-dark)', display: 'flex', flexDirection: 'column' }}>
       {/* Top Bar Navigation (top-nav-dark) */}
@@ -456,10 +473,13 @@ export default function App() {
                 fontSize: '14px',
                 cursor: 'pointer',
                 borderBottom: activeView === 'admin' ? '2px solid var(--colors-primary)' : '2px solid transparent',
-                padding: '18px 4px 16px'
+                padding: '18px 4px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              💻 Live Telemetry & Fleet
+              <Activity size={16} /> Live Telemetry & Fleet
             </button>
 
             <button
@@ -472,10 +492,13 @@ export default function App() {
                 fontSize: '14px',
                 cursor: 'pointer',
                 borderBottom: activeView === 'soc' ? '2px solid var(--colors-primary)' : '2px solid transparent',
-                padding: '18px 4px 16px'
+                padding: '18px 4px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              🛡️ SOC Threat Sequence
+              <Shield size={16} /> SOC Threat Sequence
             </button>
           </nav>
         </div>
@@ -485,6 +508,9 @@ export default function App() {
             <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>Workspace:</span>
             <strong className="body-sm" style={{ color: 'var(--colors-on-dark)' }}>{selectedOrg.name}</strong>
           </div>
+
+          {/* Email Alert Notification Bell */}
+          <NotificationCenter userEmail={currentUser?.email} />
 
           <button
             onClick={() => setSelectedOrg(null)}
@@ -504,11 +530,11 @@ export default function App() {
 
           {isConnected ? (
             <span className="badge badge-success">
-              ● Telemetry Online
+              Telemetry Online
             </span>
           ) : (
             <span className="badge badge-danger">
-              ● Disconnected
+              Disconnected
             </span>
           )}
         </div>
@@ -523,10 +549,7 @@ export default function App() {
       {/* Primary Dashboard Interactive Workarea */}
       <section style={{ padding: '24px 24px', flex: 1 }}>
         <div className="container">
-          {activeView === 'admin' ? (
-            <AdminDashboard orgId={selectedOrg.id} />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Session Graph Multi-Hop Visualization Card */}
               <SessionGraphCard session={selectedSession} />
 
@@ -538,7 +561,7 @@ export default function App() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <div>
                       <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
-                        <span>🚨 LIVE THREAT ALERT FEED</span>
+                        <span>LIVE THREAT ALERT FEED</span>
                       </div>
                       <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
                         Real-Time Triage
@@ -577,8 +600,8 @@ export default function App() {
 
 
                   {!isConnected ? (
-                    <div style={{ padding: '16px', borderRadius: 'var(--rounded-md)', background: 'rgba(246, 70, 93, 0.1)', border: '1px solid rgba(246, 70, 93, 0.3)', color: 'var(--colors-risk-escalating)', fontSize: '13px' }}>
-                      ⚠️ <strong>Backend disconnected</strong> — unable to poll telemetry server
+                    <div style={{ padding: '16px', borderRadius: 'var(--rounded-md)', background: 'rgba(246, 70, 93, 0.1)', border: '1px solid rgba(246, 70, 93, 0.3)', color: 'var(--colors-risk-escalating)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <AlertTriangle size={16} style={{ flexShrink: 0 }} /> <strong>Backend disconnected</strong> — unable to poll telemetry server
                     </div>
                   ) : loading ? (
                     <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0' }}>Loading live telemetry feed...</div>
@@ -606,8 +629,8 @@ export default function App() {
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div className="pattern-icon-chip" style={{ width: '28px', height: '28px', fontSize: '12px' }}>
-                                {isCritical ? '🚨' : '⚠️'}
+                              <div className="pattern-icon-chip" style={{ width: '28px', height: '28px' }}>
+                                <AlertTriangle size={14} color={isCritical ? '#f6465d' : '#fcd535'} />
                               </div>
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -625,7 +648,7 @@ export default function App() {
                                 {(a.risk_score * 100).toFixed(0)}%
                               </span>
                               <div className="body-sm" style={{ color: 'var(--colors-primary)', fontSize: '10px', fontWeight: '700', marginTop: '2px' }}>
-                                Traced →
+                                Traced
                               </div>
                             </div>
                           </div>
@@ -645,7 +668,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-          )}
         </div>
       </section>
 

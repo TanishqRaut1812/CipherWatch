@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Shield } from 'lucide-react'
 
 export default function HeroBand({ onSearch }) {
   const [query, setQuery] = useState('')
@@ -15,8 +16,8 @@ export default function HeroBand({ onSearch }) {
       <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
         {/* Eyebrow Pill */}
         <div>
-          <span className="eyebrow-pill">
-            🛡️ METADATA-ONLY · ZERO CONTENT ACCESS
+          <span className="eyebrow-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Shield size={14} color="var(--colors-primary)" /> METADATA-ONLY · ZERO CONTENT ACCESS
           </span>
         </div>
 
@@ -62,7 +63,7 @@ export default function HeroBand({ onSearch }) {
               fontWeight: 700,
             }}
           >
-            Investigate →
+            Investigate
           </button>
         </form>
 
