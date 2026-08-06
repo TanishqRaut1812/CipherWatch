@@ -5,6 +5,13 @@ import subprocess
 import signal
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
     print("=" * 70)
     print("🛡️  Starting CipherWatch Insider Threat Intelligence Platform...")
     print("=" * 70)
@@ -20,10 +27,22 @@ def main():
 
     # 2. Start FastAPI Backend Server
     print("\n[2/4] Starting FastAPI backend server on http://127.0.0.1:8000 ...")
-    try:
-        subprocess.run(["fuser", "-k", "8000/tcp"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+    if os.name == 'nt':
+        try:
+            out = subprocess.check_output("netstat -ano | findstr :8000", shell=True, text=True)
+            for line in out.strip().splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5 and "LISTENING" in parts:
+                    pid = parts[-1]
+                    subprocess.run(f"taskkill /F /PID {pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+    else:
+        try:
+            subprocess.run(["fuser", "-k", "8000/tcp"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
     backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"]
     backend_proc = subprocess.Popen(backend_cmd)
 
@@ -43,10 +62,13 @@ def main():
     print("\n[4/4] Starting Frontend Dashboard...")
     frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
     
-    # Check node_modules
-    if not os.path.exists(os.path.join(frontend_dir, "node_modules")):
+    npm_cmd = "npm.cmd" if os.name == 'nt' else "npm"
+    use_shell = os.name == 'nt'
+
+    # Check node_modules & vite package
+    if not os.path.exists(os.path.join(frontend_dir, "node_modules", "vite")):
         print("Installing frontend dependencies (npm install)...")
-        subprocess.run(["npm", "install"], cwd=frontend_dir, check=False)
+        subprocess.run([npm_cmd, "install"], cwd=frontend_dir, check=False, shell=use_shell)
 
     print("\n" + "=" * 70)
     print("🚀 CipherWatch Backend & Frontend Active!")
@@ -54,13 +76,22 @@ def main():
     print("   • Frontend UI:  http://localhost:5173 (Opening Vite dev server...)")
     print("======================================================================\n")
 
-    frontend_cmd = ["npm", "run", "dev"]
-    frontend_proc = subprocess.Popen(frontend_cmd, cwd=frontend_dir)
+    frontend_cmd = [npm_cmd, "run", "dev"]
+    frontend_proc = subprocess.Popen(frontend_cmd, cwd=frontend_dir, shell=use_shell)
 
     def shutdown_handler(sig, frame):
         print("\nStopping CipherWatch services...")
-        frontend_proc.terminate()
-        backend_proc.terminate()
+        try:
+            if os.name == 'nt':
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(frontend_proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                frontend_proc.terminate()
+        except Exception:
+            pass
+        try:
+            backend_proc.terminate()
+        except Exception:
+            pass
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown_handler)
