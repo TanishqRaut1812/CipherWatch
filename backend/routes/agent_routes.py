@@ -21,6 +21,7 @@ from backend.db.models import (
 from backend.db.session import get_db
 from backend.user_auth import get_current_user, require_org_membership
 from backend.analytics.threat_engine import ThreatEngine
+from backend.analytics.predictive_engine import predictive_engine
 from backend.schemas.agent_schemas import (
     AgentIngestionPayload,
     AgentIngestionResponse,
@@ -232,10 +233,60 @@ def ingest_agent_events(
         raw_eval_data.append({
             "event_id": event_id,
             "event_type": str(event_type),
-            "metadata": meta,
+    db.commit()
+
+    # Process all events through the Predictive Behavior Engine FSM
+    all_telemetry_events = []
+    for proc in proc_eval_data:
+        all_telemetry_events.append({
+            "event_type": "process_event",
+            "agent_id": agent.id,
+            "org_id": agent.org_id,
+            "user_id": proc.get("user") or agent.hostname,
+            "device_id": agent.id,
+            "name": proc.get("name"),
+            "cmdline": proc.get("cmdline"),
+            "exe_path": proc.get("exe_path"),
+            "pid": proc.get("pid")
+        })
+    for fs in fs_eval_data:
+        all_telemetry_events.append({
+            "event_type": "fs_event",
+            "agent_id": agent.id,
+            "org_id": agent.org_id,
+            "user_id": agent.hostname,
+            "device_id": agent.id,
+            "action": fs.get("event_type"),
+            "src_path": fs.get("src_path"),
+            "dest_path": fs.get("dest_path")
+        })
+    for usb in usb_eval_data:
+        all_telemetry_events.append({
+            "event_type": "usb_event",
+            "agent_id": agent.id,
+            "org_id": agent.org_id,
+            "user_id": agent.hostname,
+            "device_id": agent.id,
+            "action": usb.get("action"),
+            "vendor_id": usb.get("vendor_id"),
+            "product_id": usb.get("product_id"),
+            "device_name": usb.get("device_name")
+        })
+    for raw in raw_eval_data:
+        all_telemetry_events.append({
+            "event_type": raw.get("event_type"),
+            "agent_id": agent.id,
+            "org_id": agent.org_id,
+            "user_id": agent.hostname,
+            "device_id": agent.id,
+            **raw.get("metadata", {})
         })
 
-    db.commit()
+    for ev in all_telemetry_events:
+        try:
+            predictive_engine.process_event(db, ev)
+        except Exception as p_err:
+            logger.error(f"Error in predictive engine processing: {p_err}")
 
     # Pass payload into threat engine rules
     threat_payload = {

@@ -9,6 +9,7 @@ from backend.routes.agent_routes import router as agents_router, root_agent_rout
 from backend.routes.admin_routes import router as admin_router
 from backend.routes.auth_routes import router as auth_router, org_router
 from backend.routes.notifications import router as notifications_router
+from backend.routes.behavioral import router as behavioral_router
 
 # Initialize SQL tables
 Base.metadata.create_all(bind=engine)
@@ -31,6 +32,7 @@ app.include_router(auth_router)
 app.include_router(org_router)
 app.include_router(ws_router)
 app.include_router(notifications_router)
+app.include_router(behavioral_router)
 
 
 
