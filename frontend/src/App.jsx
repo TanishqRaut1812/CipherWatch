@@ -105,8 +105,13 @@ export default function App() {
       body: JSON.stringify({ email, password }),
     })
       .then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.detail || 'Login failed')
+        let data = {}
+        try {
+          data = await res.json()
+        } catch {
+          data = {}
+        }
+        if (!res.ok) throw new Error(data.detail || `Authentication failed (${res.status})`)
         return data
       })
       .then(() => fetch('/api/auth/me').then((res) => res.json()))
@@ -139,8 +144,13 @@ export default function App() {
       body: JSON.stringify({ email, username, password, org_name: orgName }),
     })
       .then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.detail || 'Registration failed')
+        let data = {}
+        try {
+          data = await res.json()
+        } catch {
+          data = {}
+        }
+        if (!res.ok) throw new Error(data.detail || `Registration failed (${res.status})`)
         return data
       })
       .then(() => fetch('/api/auth/me').then((res) => res.json()))
