@@ -25,7 +25,34 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Initialize database tables."""
-    from backend.db.models import Base
+    """Initialize database tables and seed default organization if needed."""
+    from backend.db.models import Base, OrganizationModel, UserModel
     Base.metadata.create_all(bind=engine)
+
+    # Seed default org for testing/simulator if database is empty
+    session = SessionLocal()
+    try:
+        if not session.query(OrganizationModel).first():
+            user = UserModel(
+                id="default_user",
+                email="admin@cipherwatch.local",
+                username="admin",
+                password_hash="disabled",
+            )
+            session.add(user)
+            session.flush()
+            org = OrganizationModel(
+                id="default_org",
+                name="Default Organization",
+                organization_id="org-default-uuid",
+                enrollment_key="cwek_defaultkey1234567890123456789012345",
+                registration_key="cwrk_defaultkey1234567890123456",
+                owner_user_id=user.id,
+            )
+            session.add(org)
+            session.commit()
+    except Exception:
+        session.rollback()
+    finally:
+        session.close()
 
