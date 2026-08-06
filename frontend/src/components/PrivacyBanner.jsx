@@ -8,21 +8,21 @@ export const PrivacyBanner = () => {
     <>
       <div
         style={{
-          background: 'var(--surface-soft)',
-          borderBottom: '1px solid var(--border-subtle)',
-          padding: '10px 24px',
+          backgroundColor: 'var(--colors-canvas-dark)',
+          borderBottom: '1px solid var(--colors-hairline-on-dark)',
+          padding: '10px 32px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           fontSize: '12px',
           fontFamily: 'var(--font-sans)',
-          color: 'var(--text-primary)',
+          color: 'var(--colors-body)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '14px' }}>🛡️</span>
+          <span style={{ fontSize: '14px', color: 'var(--colors-primary)' }}>🛡️</span>
           <span>
-            <strong>ZERO-PRIVACY INVASION GUARANTEE:</strong> 0% Payload Inspection • Zero Screen Recording • Disclosed Telemetry Metadata Only
+            <strong style={{ color: 'var(--colors-primary)' }}>ZERO-PRIVACY INVASION GUARANTEE:</strong> 0% Payload Inspection • Zero Screen Recording • Disclosed Metadata Only
           </span>
         </div>
 
@@ -30,10 +30,10 @@ export const PrivacyBanner = () => {
           onClick={() => setIsModalOpen(true)}
           style={{
             padding: '4px 12px',
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: 'var(--radius-pill)',
-            color: 'var(--primary-blue)',
+            background: 'var(--colors-surface-card-dark)',
+            border: '1px solid var(--colors-hairline-on-dark)',
+            borderRadius: 'var(--rounded-pill)',
+            color: 'var(--colors-primary)',
             fontSize: '11px',
             fontWeight: '600',
             cursor: 'pointer',

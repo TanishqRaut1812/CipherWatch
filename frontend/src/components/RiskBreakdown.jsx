@@ -1,12 +1,12 @@
 import React from 'react';
 
 const FACTOR_METADATA = [
-  { key: 'isolation_forest_ml', label: 'Isolation Forest ML', maxPts: 25, color: 'var(--primary-cyan)' },
-  { key: 'rule_heuristics', label: 'Rule Heuristics', maxPts: 25, color: 'var(--accent-amber)' },
-  { key: 'folder_sensitivity', label: 'Folder Sensitivity', maxPts: 10, color: 'var(--accent-red)' },
-  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, color: 'var(--primary-blue)' },
+  { key: 'isolation_forest_ml', label: 'Isolation Forest ML', maxPts: 25, color: 'var(--colors-primary)' },
+  { key: 'rule_heuristics', label: 'Rule Heuristics', maxPts: 25, color: '#f59e0b' },
+  { key: 'folder_sensitivity', label: 'Folder Sensitivity', maxPts: 10, color: 'var(--colors-risk-escalating)' },
+  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, color: 'var(--colors-info)' },
   { key: 'graph_topology', label: 'Graph Topology', maxPts: 15, color: '#a855f7' },
-  { key: 'longitudinal_drift', label: '14-Day Longitudinal Drift', maxPts: 10, color: 'var(--accent-green)' },
+  { key: 'longitudinal_drift', label: '14-Day Longitudinal Drift', maxPts: 10, color: 'var(--colors-risk-contained)' },
 ];
 
 export const RiskBreakdown = ({ breakdownData }) => {
@@ -36,17 +36,17 @@ export const RiskBreakdown = ({ breakdownData }) => {
   };
 
   return (
-    <div className="feature-card" style={{ padding: '24px', height: '100%' }}>
+    <div className="alert-feed-card" style={{ padding: '24px', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <h3 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+          <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
             Risk Factor Breakdown
           </h3>
-          <span className="body-sm" style={{ color: 'var(--text-secondary)' }}>
-            Intent: <strong style={{ color: 'var(--primary-blue)' }}>{predicted_intent || 'Analyzing...'}</strong>
+          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>
+            Intent: <strong style={{ color: 'var(--colors-primary)' }}>{predicted_intent || 'Analyzing...'}</strong>
           </span>
         </div>
-        <div className={`badge ${getScoreBadgeClass(risk_score)}`} style={{ fontSize: '13px', padding: '6px 14px' }}>
+        <div className={`badge ${getScoreBadgeClass(risk_score)} tabular-nums`} style={{ fontSize: '13px', padding: '6px 14px' }}>
           {risk_score} / 100
         </div>
       </div>
@@ -59,19 +59,19 @@ export const RiskBreakdown = ({ breakdownData }) => {
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontWeight: '600' }}>
-                  +{val} pts <span style={{ color: 'var(--text-muted)' }}>/ {maxPts}</span>
+                <span style={{ color: 'var(--colors-muted-strong)' }}>{label}</span>
+                <span className="tabular-nums" style={{ color: 'var(--colors-on-dark)', fontWeight: '600' }}>
+                  +{val} pts <span style={{ color: 'var(--colors-muted)' }}>/ {maxPts}</span>
                 </span>
               </div>
               <div
                 style={{
                   width: '100%',
                   height: '6px',
-                  backgroundColor: 'var(--surface-soft)',
+                  backgroundColor: 'var(--colors-canvas-dark)',
                   borderRadius: '3px',
                   overflow: 'hidden',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid var(--colors-hairline-on-dark)',
                 }}
               >
                 <div
@@ -90,8 +90,8 @@ export const RiskBreakdown = ({ breakdownData }) => {
       </div>
 
       {matched_patterns && matched_patterns.length > 0 && (
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-          <div className="caption" style={{ textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.02em' }}>
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline-on-dark)' }}>
+          <div className="body-sm" style={{ textTransform: 'uppercase', color: 'var(--colors-muted)', marginBottom: '8px', letterSpacing: '0.02em', fontSize: '11px', fontWeight: 600 }}>
             Graph Topology Patterns ({topology_multiplier}x Multiplier)
           </div>
           {matched_patterns.map((pat, idx) => (
@@ -100,10 +100,10 @@ export const RiskBreakdown = ({ breakdownData }) => {
               style={{
                 fontSize: '11px',
                 fontFamily: 'var(--font-mono)',
-                color: 'var(--primary-blue)',
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                borderRadius: 'var(--radius-sm)',
+                color: 'var(--colors-primary)',
+                background: 'var(--colors-canvas-dark)',
+                border: '1px solid var(--colors-hairline-on-dark)',
+                borderRadius: 'var(--rounded-sm)',
                 padding: '6px 10px',
                 marginBottom: '6px',
               }}

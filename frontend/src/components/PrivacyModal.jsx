@@ -9,7 +9,7 @@ export const PrivacyModal = ({ onClose }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(5, 10, 20, 0.85)',
+        background: 'rgba(11, 14, 17, 0.88)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         justifyContent: 'center',
@@ -19,18 +19,17 @@ export const PrivacyModal = ({ onClose }) => {
       }}
     >
       <div
-        className="glass-panel-xl"
+        className="alert-feed-card"
         style={{
           width: '100%',
           maxWidth: '620px',
           padding: '32px',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--border-active)',
-          boxShadow: 'var(--shadow-elevated)',
+          backgroundColor: 'var(--colors-surface-card-dark)',
+          border: '1px solid var(--colors-hairline-on-dark)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 className="title-lg" style={{ color: 'var(--text-primary)', margin: 0 }}>
+          <h2 className="title-lg" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
             🛡️ Privacy Audit & Data Collection Disclosures
           </h2>
           <button
@@ -38,7 +37,7 @@ export const PrivacyModal = ({ onClose }) => {
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--text-muted)',
+              color: 'var(--colors-muted)',
               fontSize: '20px',
               cursor: 'pointer',
             }}
@@ -47,14 +46,14 @@ export const PrivacyModal = ({ onClose }) => {
           </button>
         </div>
 
-        <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+        <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginBottom: '24px', lineHeight: '1.6' }}>
           CipherWatch operates strictly on a <strong>disclosed surveillance and metadata-only architecture</strong>.
           Our endpoint agents analyze structural event patterns without inspecting raw payloads or private user content.
         </p>
 
         {/* Never Collected Section */}
         <div style={{ marginBottom: '24px' }}>
-          <h3 className="title-sm" style={{ color: 'var(--accent-red)', marginBottom: '12px' }}>
+          <h3 className="title-sm" style={{ color: 'var(--colors-risk-escalating)', marginBottom: '12px' }}>
             🚫 NEVER COLLECTED (Zero Ingestion Policy)
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -78,7 +77,7 @@ export const PrivacyModal = ({ onClose }) => {
 
         {/* Metadata Only Collected Section */}
         <div style={{ marginBottom: '28px' }}>
-          <h3 className="title-sm" style={{ color: 'var(--accent-green)', marginBottom: '12px' }}>
+          <h3 className="title-sm" style={{ color: 'var(--colors-risk-contained)', marginBottom: '12px' }}>
             ✅ METADATA ONLY (Disclosed Telemetry)
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

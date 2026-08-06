@@ -52,7 +52,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(9, 13, 22, 0.85)',
+        background: 'rgba(11, 14, 17, 0.88)',
         backdropFilter: 'blur(8px)',
         zIndex: 9999,
         display: 'flex',
@@ -63,7 +63,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
       onClick={onClose}
     >
       <div
-        className="glass-panel-xl"
+        className="alert-feed-card"
         style={{
           width: '100%',
           maxWidth: '1100px',
@@ -71,9 +71,8 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          background: 'var(--surface-card)',
-          border: '1px solid var(--border-active)',
-          boxShadow: 'var(--shadow-elevated)',
+          backgroundColor: 'var(--colors-surface-card-dark)',
+          border: '1px solid var(--colors-hairline-on-dark)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -81,23 +80,23 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
         <div
           style={{
             padding: '20px 28px',
-            borderBottom: '1px solid var(--border-subtle)',
+            borderBottom: '1px solid var(--colors-hairline-on-dark)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: 'var(--surface-soft)',
+            backgroundColor: 'var(--colors-canvas-dark)',
           }}
         >
           {loading || !data ? (
-            <div className="title-md" style={{ color: 'var(--text-primary)' }}>Loading system telemetry...</div>
+            <div className="title-md" style={{ color: 'var(--colors-on-dark)' }}>Loading system telemetry...</div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div
                 style={{
                   width: '42px',
                   height: '42px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--surface-strong)',
+                  borderRadius: 'var(--rounded-md)',
+                  background: 'var(--colors-surface-elevated-dark)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -108,7 +107,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h2 className="title-lg" style={{ color: 'var(--text-primary)', margin: 0 }}>
+                  <h2 className="title-lg" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
                     {data.header.hostname}
                   </h2>
                   <span className={`badge ${data.header.status === 'online' ? 'badge-success' : 'badge-danger'}`}>
@@ -118,8 +117,8 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                     THREAT: {data.header.threat_level.toUpperCase()}
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <span>ID: <code style={{ color: 'var(--primary-cyan)' }}>{data.header.id}</code></span>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '4px', fontSize: '12px', color: 'var(--colors-muted-strong)' }}>
+                  <span>ID: <code style={{ color: 'var(--colors-primary)' }}>{data.header.id}</code></span>
                   <span>OS: {data.header.os}</span>
                   <span>IP: {data.header.ip}</span>
                   <span>Version: v{data.header.agent_version}</span>
@@ -133,7 +132,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-secondary)',
+              color: 'var(--colors-muted-strong)',
               fontSize: '24px',
               cursor: 'pointer',
               padding: '4px 8px',
@@ -147,11 +146,11 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
         <div
           style={{
             padding: '12px 28px',
-            borderBottom: '1px solid var(--border-subtle)',
+            borderBottom: '1px solid var(--colors-hairline-on-dark)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: 'var(--surface-canvas)',
+            backgroundColor: 'var(--colors-canvas-dark)',
           }}
         >
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -173,19 +172,20 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="caption" style={{ color: 'var(--text-muted)' }}>Range:</span>
+            <span className="body-sm" style={{ color: 'var(--colors-muted)' }}>Range:</span>
             {[1, 6, 24, 168].map((hrs) => (
               <button
                 key={hrs}
                 onClick={() => setTimeRange(hrs)}
                 style={{
-                  background: timeRange === hrs ? 'var(--primary-cta)' : 'var(--surface-soft)',
-                  color: timeRange === hrs ? '#fff' : 'var(--text-secondary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
+                  background: timeRange === hrs ? 'var(--colors-primary)' : 'var(--colors-surface-card-dark)',
+                  color: timeRange === hrs ? 'var(--colors-on-primary)' : 'var(--colors-muted-strong)',
+                  border: '1px solid var(--colors-hairline-on-dark)',
+                  borderRadius: 'var(--rounded-sm)',
                   padding: '2px 8px',
                   fontSize: '11px',
                   cursor: 'pointer',
+                  fontWeight: timeRange === hrs ? '700' : '400',
                 }}
               >
                 {hrs === 168 ? '7d' : `${hrs}h`}
@@ -197,7 +197,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
         {/* Modal Body */}
         <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
           {loading || !data ? (
-            <div className="body-md" style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>
+            <div className="body-md" style={{ color: 'var(--colors-muted)', textAlign: 'center', padding: '40px' }}>
               Retrieving agent telemetry details...
             </div>
           ) : (
@@ -208,29 +208,28 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                   {/* Metric Summary Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     {[
-                      { label: 'CPU Usage', val: `${data.metrics_series.slice(-1)[0]?.cpu_percent ?? 0}%`, color: 'var(--primary-cta)' },
-                      { label: 'Memory Usage', val: `${data.metrics_series.slice(-1)[0]?.mem_percent ?? 0}%`, color: 'var(--accent-amber)' },
-                      { label: 'Disk Usage', val: `${data.metrics_series.slice(-1)[0]?.disk_percent ?? 0}%`, color: 'var(--primary-cyan)' },
-                      { label: 'Process Count', val: data.metrics_series.slice(-1)[0]?.process_count ?? 0, color: 'var(--text-primary)' },
+                      { label: 'CPU Usage', val: `${data.metrics_series.slice(-1)[0]?.cpu_percent ?? 0}%`, color: 'var(--colors-primary)' },
+                      { label: 'Memory Usage', val: `${data.metrics_series.slice(-1)[0]?.mem_percent ?? 0}%`, color: '#f59e0b' },
+                      { label: 'Disk Usage', val: `${data.metrics_series.slice(-1)[0]?.disk_percent ?? 0}%`, color: 'var(--colors-info)' },
+                      { label: 'Process Count', val: data.metrics_series.slice(-1)[0]?.process_count ?? 0, color: 'var(--colors-on-dark)' },
                     ].map((card, i) => (
-                      <div key={i} className="glass-panel" style={{ padding: '16px' }}>
-                        <span className="caption" style={{ color: 'var(--text-muted)' }}>{card.label}</span>
-                        <div className="display-sm" style={{ color: card.color, marginTop: '4px' }}>{card.val}</div>
+                      <div key={i} className="alert-feed-card" style={{ padding: '16px' }}>
+                        <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>{card.label}</span>
+                        <div className="number-display" style={{ color: card.color, marginTop: '4px' }}>{card.val}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Resource Trend Chart Visualization */}
-                  <div className="glass-panel" style={{ padding: '20px' }}>
-                    <h3 className="title-md" style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>
+                  <div className="alert-feed-card" style={{ padding: '20px' }}>
+                    <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', marginBottom: '16px' }}>
                       📈 Resource Utilization History ({timeRange}h Window)
                     </h3>
                     {data.metrics_series.length === 0 ? (
-                      <div className="body-sm" style={{ color: 'var(--text-muted)' }}>No metric snapshots recorded in this window.</div>
+                      <div className="body-sm" style={{ color: 'var(--colors-muted)' }}>No metric snapshots recorded in this window.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {/* Custom Bar/Line Sparkline Table */}
-                        <div style={{ display: 'flex', alignItems: 'flex-end', height: '140px', gap: '6px', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', height: '140px', gap: '6px', padding: '10px 0', borderBottom: '1px solid var(--colors-hairline-on-dark)' }}>
                           {data.metrics_series.map((m, idx) => (
                             <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                               <div
@@ -238,7 +237,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                                 style={{
                                   width: '100%',
                                   height: `${Math.max(m.cpu_percent, 5)}%`,
-                                  background: m.cpu_percent > 85 ? 'var(--accent-red)' : 'var(--primary-cta)',
+                                  background: m.cpu_percent > 85 ? 'var(--colors-risk-escalating)' : 'var(--colors-primary)',
                                   borderRadius: '2px 2px 0 0',
                                   transition: 'height 0.2s ease',
                                 }}
@@ -246,9 +245,9 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                             </div>
                           ))}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--colors-muted-strong)' }}>
                           <span>{data.metrics_series[0] ? new Date(data.metrics_series[0].timestamp).toLocaleTimeString() : ''}</span>
-                          <span>Blue bars = CPU Utilization (Red if &gt;85%)</span>
+                          <span>Yellow bars = CPU Utilization (Red if &gt;85%)</span>
                           <span>{data.metrics_series.slice(-1)[0] ? new Date(data.metrics_series.slice(-1)[0].timestamp).toLocaleTimeString() : ''}</span>
                         </div>
                       </div>
@@ -256,12 +255,12 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                   </div>
 
                   {/* Active Alerts for this Agent */}
-                  <div className="glass-panel" style={{ padding: '20px' }}>
-                    <h3 className="title-md" style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>
+                  <div className="alert-feed-card" style={{ padding: '20px' }}>
+                    <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', marginBottom: '16px' }}>
                       🚨 System Alerts ({data.alerts.length})
                     </h3>
                     {data.alerts.length === 0 ? (
-                      <div className="body-sm" style={{ color: 'var(--text-muted)' }}>No threat alerts recorded for this machine.</div>
+                      <div className="body-sm" style={{ color: 'var(--colors-muted)' }}>No threat alerts recorded for this machine.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {data.alerts.map((al) => (
@@ -269,9 +268,9 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                             key={al.id}
                             style={{
                               padding: '12px 16px',
-                              borderRadius: 'var(--radius-md)',
-                              background: al.severity === 'critical' ? 'rgba(248, 113, 113, 0.08)' : 'var(--surface-soft)',
-                              border: `1px solid ${al.severity === 'critical' ? 'rgba(248, 113, 113, 0.25)' : 'var(--border-subtle)'}`,
+                              borderRadius: 'var(--rounded-md)',
+                              background: al.severity === 'critical' ? 'rgba(246, 70, 93, 0.08)' : 'var(--colors-canvas-dark)',
+                              border: `1px solid ${al.severity === 'critical' ? 'rgba(246, 70, 93, 0.3)' : 'var(--colors-hairline-on-dark)'}`,
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
@@ -282,12 +281,12 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                                 <span className={`badge ${al.severity === 'critical' ? 'badge-danger' : 'badge-warning'}`}>
                                   {al.severity.toUpperCase()}
                                 </span>
-                                <code className="caption" style={{ color: 'var(--primary-cyan)' }}>{al.rule_id}</code>
-                                <span className="caption" style={{ color: 'var(--text-muted)' }}>
+                                <code className="body-sm" style={{ color: 'var(--colors-primary)' }}>{al.rule_id}</code>
+                                <span className="body-sm tabular-nums" style={{ color: 'var(--colors-muted)' }}>
                                   {new Date(al.timestamp).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="body-sm" style={{ color: 'var(--text-primary)', marginTop: '4px' }}>
+                              <p className="body-sm" style={{ color: 'var(--colors-on-dark)', marginTop: '4px' }}>
                                 {al.message}
                               </p>
                             </div>
@@ -334,9 +333,9 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                   </div>
 
                   {timelineLoading ? (
-                    <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0' }}>Loading timeline...</div>
+                    <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0' }}>Loading timeline...</div>
                   ) : timelineEvents.length === 0 ? (
-                    <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0' }}>No matching events found.</div>
+                    <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0' }}>No matching events found.</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {timelineEvents.map((evt) => (
@@ -344,9 +343,9 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                           key={evt.id}
                           style={{
                             padding: '12px 16px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'var(--surface-soft)',
-                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--rounded-md)',
+                            background: 'var(--colors-canvas-dark)',
+                            border: '1px solid var(--colors-hairline-on-dark)',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
@@ -357,14 +356,14 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                               <span className={`badge ${evt.category === 'process' ? 'badge-info' : 'badge-warning'}`}>
                                 {evt.category.toUpperCase()}
                               </span>
-                              <span className="caption" style={{ color: 'var(--text-muted)' }}>
+                              <span className="body-sm tabular-nums" style={{ color: 'var(--colors-muted)' }}>
                                 {new Date(evt.timestamp).toLocaleTimeString()}
                               </span>
-                              <strong className="body-sm" style={{ color: 'var(--text-primary)' }}>
+                              <strong className="body-sm" style={{ color: 'var(--colors-on-dark)' }}>
                                 {evt.title}
                               </strong>
                             </div>
-                            <div className="caption" style={{ color: 'var(--text-secondary)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
+                            <div className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
                               {evt.details}
                             </div>
                           </div>
@@ -381,7 +380,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                         >
                           ← Previous
                         </button>
-                        <span className="caption" style={{ color: 'var(--text-muted)' }}>
+                        <span className="body-sm tabular-nums" style={{ color: 'var(--colors-muted)' }}>
                           Page {timelinePage} of {timelineTotalPages}
                         </span>
                         <button
@@ -401,13 +400,13 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
               {/* TAB 3: ACTIVE PROCESSES LIST */}
               {activeTab === 'processes' && (
                 <div>
-                  <h3 className="title-md" style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>
+                  <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', marginBottom: '16px' }}>
                     ⚡ Most Recent Process Activity
                   </h3>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                        <tr style={{ borderBottom: '1px solid var(--colors-hairline-on-dark)', color: 'var(--colors-muted-strong)' }}>
                           <th style={{ padding: '8px 12px' }}>PID</th>
                           <th style={{ padding: '8px 12px' }}>Name</th>
                           <th style={{ padding: '8px 12px' }}>User</th>
@@ -418,15 +417,15 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                       </thead>
                       <tbody>
                         {data.latest_processes.map((proc) => (
-                          <tr key={proc.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <tr key={proc.id} style={{ borderBottom: '1px solid var(--colors-hairline-on-dark)' }}>
                             <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)' }}>{proc.pid}</td>
                             <td style={{ padding: '8px 12px', fontWeight: '500' }}>{proc.name}</td>
                             <td style={{ padding: '8px 12px' }}>{proc.user || 'N/A'}</td>
-                            <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--colors-muted-strong)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {proc.exe_path || proc.cmdline}
                             </td>
-                            <td style={{ padding: '8px 12px' }}>{proc.cpu_percent}%</td>
-                            <td style={{ padding: '8px 12px' }}>{proc.mem_rss_mb} MB</td>
+                            <td style={{ padding: '8px 12px' }} className="tabular-nums">{proc.cpu_percent}%</td>
+                            <td style={{ padding: '8px 12px' }} className="tabular-nums">{proc.mem_rss_mb} MB</td>
                           </tr>
                         ))}
                       </tbody>
@@ -438,13 +437,13 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
               {/* TAB 4: FILESYSTEM ACTIVITY */}
               {activeTab === 'fs' && (
                 <div>
-                  <h3 className="title-md" style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>
+                  <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', marginBottom: '16px' }}>
                     📁 Recent Filesystem Events
                   </h3>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                        <tr style={{ borderBottom: '1px solid var(--colors-hairline-on-dark)', color: 'var(--colors-muted-strong)' }}>
                           <th style={{ padding: '8px 12px' }}>Time</th>
                           <th style={{ padding: '8px 12px' }}>Event</th>
                           <th style={{ padding: '8px 12px' }}>Path</th>
@@ -453,8 +452,8 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                       </thead>
                       <tbody>
                         {data.recent_fs_events.map((fs) => (
-                          <tr key={fs.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <td style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                          <tr key={fs.id} style={{ borderBottom: '1px solid var(--colors-hairline-on-dark)' }}>
+                            <td style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--colors-muted)' }} className="tabular-nums">
                               {new Date(fs.timestamp).toLocaleTimeString()}
                             </td>
                             <td style={{ padding: '8px 12px' }}>
@@ -465,7 +464,7 @@ export default function SystemDetailModal({ orgId, agentId, onClose }) {
                             <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
                               {fs.src_path}
                             </td>
-                            <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-muted)' }}>
+                            <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--colors-muted)' }}>
                               {fs.dest_path || '—'}
                             </td>
                           </tr>

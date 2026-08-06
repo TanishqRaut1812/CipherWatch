@@ -30,18 +30,12 @@ export const RiskChart = ({ data }) => {
   const areaD = `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
 
   return (
-    <div
-      className="feature-card"
-      style={{
-        padding: '24px',
-        marginBottom: '24px',
-      }}
-    >
+    <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 className="title-sm" style={{ color: 'var(--text-primary)', margin: 0 }}>
+        <h3 className="title-sm" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
           📈 Longitudinal Risk Score Trend
         </h3>
-        <span className="caption" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <span className="body-sm tabular-nums" style={{ color: 'var(--colors-muted-strong)' }}>
           Real-time Time Series
         </span>
       </div>
@@ -50,14 +44,14 @@ export const RiskChart = ({ data }) => {
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <defs>
             <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f87171" stopOpacity="0.3" />
-              <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#f6465d" stopOpacity="0.3" />
+              <stop offset="50%" stopColor="#fcd535" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#fcd535" stopOpacity="0.0" />
             </linearGradient>
             <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#34d399" />
-              <stop offset="50%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#f87171" />
+              <stop offset="0%" stopColor="#0ecb81" />
+              <stop offset="50%" stopColor="#fcd535" />
+              <stop offset="100%" stopColor="#f6465d" />
             </linearGradient>
           </defs>
 
@@ -71,7 +65,7 @@ export const RiskChart = ({ data }) => {
                 y1={y}
                 x2={width - padding}
                 y2={y}
-                stroke="rgba(255, 255, 255, 0.06)"
+                stroke="var(--colors-hairline-on-dark)"
                 strokeDasharray="4 4"
               />
             );
@@ -90,8 +84,8 @@ export const RiskChart = ({ data }) => {
               cx={pt.x}
               cy={pt.y}
               r={hoveredPoint === idx ? 6 : 4}
-              fill={pt.risk > 0.7 ? '#f87171' : pt.risk > 0.4 ? '#fbbf24' : '#34d399'}
-              stroke="var(--surface-canvas)"
+              fill={pt.risk > 0.7 ? 'var(--colors-risk-escalating)' : pt.risk > 0.4 ? 'var(--colors-primary)' : 'var(--colors-risk-contained)'}
+              stroke="var(--colors-canvas-dark)"
               strokeWidth="2"
               style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
               onMouseEnter={() => setHoveredPoint(idx)}
@@ -108,19 +102,18 @@ export const RiskChart = ({ data }) => {
               top: '10px',
               left: `${(points[hoveredPoint].x / width) * 100}%`,
               transform: 'translateX(-50%)',
-              background: 'var(--surface-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
+              background: 'var(--colors-canvas-dark)',
+              border: '1px solid var(--colors-hairline-on-dark)',
+              borderRadius: 'var(--rounded-sm)',
               padding: '6px 12px',
               fontSize: '11px',
-              color: 'var(--text-primary)',
-              boxShadow: 'var(--shadow-card)',
+              color: 'var(--colors-on-dark)',
               pointerEvents: 'none',
               whiteSpace: 'nowrap',
             }}
           >
             <strong>{points[hoveredPoint].label}</strong> ({points[hoveredPoint].time}):{' '}
-            <span style={{ color: points[hoveredPoint].risk > 0.7 ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+            <span className="tabular-nums" style={{ color: points[hoveredPoint].risk > 0.7 ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)' }}>
               {(points[hoveredPoint].risk * 100).toFixed(0)}%
             </span>
           </div>
