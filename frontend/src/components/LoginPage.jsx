@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Activity, Lock, Zap } from 'lucide-react'
 import PrivacyModal from './PrivacyModal'
 
 export default function LoginPage({
@@ -28,121 +28,200 @@ export default function LoginPage({
         display: 'flex',
         minHeight: '100vh',
         width: '100%',
-        backgroundColor: 'var(--colors-canvas-dark)',
+        backgroundColor: '#0b0e11',
       }}
     >
-      {/* LEFT PANEL — Brand & Value Prop (55% width, surface-elevated background) */}
+      {/* LEFT PANEL — Hero Section (Full-bleed dark gradient with radial vignette & background graph) */}
       <div
-        className="split-left-panel"
+        className="split-left-panel hero-gradient-panel"
         style={{
-          width: '55%',
-          backgroundColor: 'var(--colors-surface-card-dark)',
+          width: '52%',
           borderRight: '1px solid var(--colors-hairline-on-dark)',
           padding: '48px 56px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          position: 'relative',
         }}
       >
-        <div>
-          {/* 1. Logo Mark & Wordmark */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}>
+        {/* Decorative Background Network / Graph Nodes SVG */}
+        <svg
+          className="hero-bg-graph"
+          viewBox="0 0 800 800"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M100 150 L250 280 L400 180 L600 320 L720 200" stroke="#fcd535" strokeWidth="1.5" strokeDasharray="4 4" />
+          <path d="M150 450 L300 380 L480 500 L650 410 L750 580" stroke="#fcd535" strokeWidth="1" strokeDasharray="6 6" />
+          <path d="M250 280 L300 380" stroke="#fcd535" strokeWidth="1.2" opacity="0.6" />
+          <path d="M400 180 L480 500" stroke="#fcd535" strokeWidth="1.2" opacity="0.6" />
+          <path d="M600 320 L650 410" stroke="#fcd535" strokeWidth="1.2" opacity="0.6" />
+          <circle cx="100" cy="150" r="5" fill="#fcd535" opacity="0.4" />
+          <circle cx="250" cy="280" r="7" fill="#fcd535" opacity="0.7" />
+          <circle cx="400" cy="180" r="6" fill="#ffe066" opacity="0.6" />
+          <circle cx="600" cy="320" r="8" fill="#f0b90b" opacity="0.8" />
+          <circle cx="720" cy="200" r="5" fill="#fcd535" opacity="0.5" />
+          <circle cx="300" cy="380" r="6" fill="#f6465d" opacity="0.6" />
+          <circle cx="480" cy="500" r="7" fill="#0ecb81" opacity="0.7" />
+          <circle cx="650" cy="410" r="6" fill="#fcd535" opacity="0.5" />
+        </svg>
+
+        <div className="hero-content">
+          {/* 1. Top Wordmark & Brand Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
             <div
               style={{
-                width: '34px',
-                height: '34px',
+                width: '38px',
+                height: '38px',
                 borderRadius: 'var(--rounded-md)',
-                backgroundColor: 'var(--colors-canvas-dark)',
-                border: '1px solid var(--colors-hairline-on-dark)',
+                background: 'linear-gradient(135deg, #1e2329 0%, #15191e 100%)',
+                border: '1px solid rgba(252, 213, 53, 0.4)',
+                boxShadow: '0 0 12px rgba(252, 213, 53, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '15px',
-                color: 'var(--colors-primary)',
+                fontWeight: '800',
+                fontSize: '16px',
+                color: '#fcd535',
+                letterSpacing: '-0.5px',
               }}
             >
               CW
             </div>
-            <span style={{ fontWeight: '700', fontSize: '18px', letterSpacing: '-0.3px', color: 'var(--colors-on-dark)' }}>
-              CIPHER<span style={{ color: 'var(--colors-primary)' }}>WATCH</span>
+            <span style={{ fontWeight: '800', fontSize: '20px', letterSpacing: '-0.5px', color: '#ffffff' }}>
+              CIPHER<span style={{ color: '#fcd535' }}>WATCH</span>
             </span>
           </div>
 
-          {/* 2. Display Headline */}
-          <h1 className="display-sm" style={{ color: 'var(--colors-on-dark)', marginBottom: '32px', maxWidth: '480px' }}>
-            See the exfiltration. <span style={{ color: 'var(--colors-primary)' }}>Never the content.</span>
-          </h1>
-
-          {/* 3. Three Stacked Feature Rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
-            <div className="trust-badge" style={{ border: '1px solid var(--colors-hairline-on-dark)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '16px' }}>🛡️</span>
-                <strong className="title-sm" style={{ color: 'var(--colors-on-dark)' }}>0% Payload Inspection</strong>
-              </div>
-              <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', margin: 0 }}>
-                Full sequence visibility without reading user file or document payloads.
-              </p>
-            </div>
-
-            <div className="trust-badge" style={{ border: '1px solid var(--colors-hairline-on-dark)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '16px' }}>📸</span>
-                <strong className="title-sm" style={{ color: 'var(--colors-on-dark)' }}>Zero Screen Recording</strong>
-              </div>
-              <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', margin: 0 }}>
-                Complete zero-knowledge endpoint telemetry with zero frame buffer access.
-              </p>
-            </div>
-
-            <div className="trust-badge" style={{ border: '1px solid var(--colors-hairline-on-dark)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '16px' }}>📋</span>
-                <strong className="title-sm" style={{ color: 'var(--colors-on-dark)' }}>Disclosed Metadata Only</strong>
-              </div>
-              <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', margin: 0 }}>
-                Low-level OS telemetry paths, process hashes, and byte counts only.
-              </p>
-            </div>
+          {/* 2. Hero Headline with Gold Accent & Subhead */}
+          <div style={{ marginBottom: '36px', maxWidth: '520px' }}>
+            <h1
+              className="hero-headline-text"
+              style={{
+                fontSize: '38px',
+                fontWeight: '800',
+                lineHeight: '1.18',
+                letterSpacing: '-0.8px',
+                color: '#ffffff',
+                marginBottom: '16px',
+              }}
+            >
+              Insider threat detection powered by{' '}
+              <span className="text-gradient-primary">metadata-only analytics.</span>
+            </h1>
+            <p
+              style={{
+                fontSize: '15px',
+                color: '#929aa5',
+                lineHeight: '1.55',
+                fontWeight: '400',
+                margin: 0,
+              }}
+            >
+              Continuous zero-knowledge telemetry across enterprise endpoints with 0% payload capture or document logging.
+            </p>
           </div>
 
-          {/* 4. Stat Callout Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            <div className="trust-badge" style={{ backgroundColor: 'var(--colors-canvas-dark)', border: '1px solid var(--colors-hairline-on-dark)', padding: '14px 16px' }}>
-              <span className="number-display" style={{ color: 'var(--colors-primary)', fontSize: '24px' }}>&lt; 4 min</span>
-              <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontSize: '11px', fontWeight: 500 }}>Mean Triage Time</span>
+          {/* 3. Value-Prop Feature Bullets */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px', maxWidth: '440px' }}>
+            <div className="feature-bullet-chip">
+              <ShieldCheck size={18} style={{ color: '#fcd535', flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#eaecef' }}>
+                Zero content capture
+              </span>
             </div>
 
-            <div className="trust-badge" style={{ backgroundColor: 'var(--colors-canvas-dark)', border: '1px solid var(--colors-hairline-on-dark)', padding: '14px 16px' }}>
-              <span className="number-display" style={{ color: 'var(--colors-primary)', fontSize: '24px' }}>0 Bytes</span>
-              <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontSize: '11px', fontWeight: 500 }}>Payload Storage</span>
+            <div className="feature-bullet-chip">
+              <Activity size={18} style={{ color: '#fcd535', flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#eaecef' }}>
+                Real-time session graphing
+              </span>
             </div>
 
-            <div className="trust-badge" style={{ backgroundColor: 'var(--colors-canvas-dark)', border: '1px solid var(--colors-hairline-on-dark)', padding: '14px 16px' }}>
-              <span className="number-display" style={{ color: 'var(--colors-primary)', fontSize: '24px' }}>No. 1</span>
-              <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontSize: '11px', fontWeight: 500 }}>Privacy Guarantee</span>
+            <div className="feature-bullet-chip">
+              <Lock size={18} style={{ color: '#fcd535', flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#eaecef' }}>
+                Metadata-only by design
+              </span>
+            </div>
+
+            <div className="feature-bullet-chip">
+              <Zap size={18} style={{ color: '#fcd535', flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#eaecef' }}>
+                SOC-ready in minutes
+              </span>
             </div>
           </div>
         </div>
 
-        {/* 5. Footer Microcopy Row */}
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', paddingTop: '32px', borderTop: '1px solid var(--colors-hairline-on-dark)', marginTop: '32px' }}>
-          <span className="body-sm" style={{ color: 'var(--colors-muted)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            🔒 0% Payload Inspection Guarantee
-          </span>
-          <span className="body-sm" style={{ color: 'var(--colors-muted)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            ⚡ Sub-millisecond Rust Agent
-          </span>
+        {/* 4. Bottom Trust Strip Row */}
+        <div className="hero-content">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px',
+              paddingTop: '24px',
+              borderTop: '1px solid rgba(43, 49, 57, 0.8)',
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'rgba(30, 35, 41, 0.7)',
+                border: '1px solid var(--colors-hairline-on-dark)',
+                borderRadius: 'var(--rounded-lg)',
+                padding: '12px 14px',
+              }}
+            >
+              <div className="number-display" style={{ color: '#fcd535', fontSize: '20px', lineHeight: '1.2' }}>
+                &lt; 4 min
+              </div>
+              <div style={{ fontSize: '11px', color: '#707a8a', fontWeight: '500', marginTop: '2px' }}>
+                Mean Detection
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: 'rgba(30, 35, 41, 0.7)',
+                border: '1px solid var(--colors-hairline-on-dark)',
+                borderRadius: 'var(--rounded-lg)',
+                padding: '12px 14px',
+              }}
+            >
+              <div className="number-display" style={{ color: '#fcd535', fontSize: '20px', lineHeight: '1.2' }}>
+                0 Bytes
+              </div>
+              <div style={{ fontSize: '11px', color: '#707a8a', fontWeight: '500', marginTop: '2px' }}>
+                Payload Access
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: 'rgba(30, 35, 41, 0.7)',
+                border: '1px solid var(--colors-hairline-on-dark)',
+                borderRadius: 'var(--rounded-lg)',
+                padding: '12px 14px',
+              }}
+            >
+              <div className="number-display" style={{ color: '#fcd535', fontSize: '20px', lineHeight: '1.2' }}>
+                100%
+              </div>
+              <div style={{ fontSize: '11px', color: '#707a8a', fontWeight: '500', marginTop: '2px' }}>
+                Metadata-Only
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* RIGHT PANEL — Login Form (45% width, canvas-dark background) */}
+      {/* RIGHT PANEL — Centered Login Card with Soft Gold Glow */}
       <div
         className="split-right-panel"
         style={{
-          width: '45%',
-          backgroundColor: 'var(--colors-canvas-dark)',
+          width: '48%',
+          backgroundColor: '#0b0e11',
           padding: '48px 40px',
           display: 'flex',
           flexDirection: 'column',
@@ -151,61 +230,92 @@ export default function LoginPage({
           position: 'relative',
         }}
       >
-        {/* Top Right Privacy Link */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+        {/* Top Audit Privacy Button Link */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
           <button
+            type="button"
             onClick={() => setIsPrivacyModalOpen(true)}
             style={{
               padding: '6px 14px',
               backgroundColor: 'var(--colors-surface-card-dark)',
               border: '1px solid var(--colors-hairline-on-dark)',
               borderRadius: 'var(--rounded-pill)',
-              color: 'var(--colors-primary)',
+              color: '#fcd535',
               fontSize: '12px',
               fontWeight: '600',
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
+              transition: 'all 200ms ease-out',
             }}
           >
-            🔍 Audit Privacy Policy & Disclosures
+            🔍 Audit Privacy Policy
           </button>
         </div>
 
-        {/* Centered Form Wrapper */}
-        <div style={{ width: '100%', maxWidth: '400px', margin: 'auto 0' }}>
-          <h2 className="title-lg" style={{ color: 'var(--colors-on-dark)', fontSize: '24px', marginBottom: '8px' }}>
-            {authMode === 'login' ? 'CipherWatch Access' : 'Create Workspace'}
-          </h2>
-          <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginBottom: '32px', lineHeight: '1.5' }}>
-            {authMode === 'login'
-              ? 'Enter corporate credentials to inspect metadata threat telemetry.'
-              : 'Initialize tenant workspace and security administrator account.'}
-          </p>
+        {/* Centered Login Card */}
+        <div className="login-card-container" style={{ margin: 'auto 0' }}>
+          {/* Card Top Branding / Title */}
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                background: 'rgba(252, 213, 53, 0.08)',
+                border: '1px solid rgba(252, 213, 53, 0.2)',
+                borderRadius: 'var(--rounded-pill)',
+                fontSize: '11px',
+                fontWeight: '700',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#fcd535',
+                marginBottom: '16px',
+              }}
+            >
+              CipherWatch Portal Access
+            </div>
+            <h2 className="title-lg" style={{ color: '#ffffff', fontSize: '22px', fontWeight: '700', margin: 0 }}>
+              {authMode === 'login' ? 'Sign In to Terminal' : 'Create Workspace'}
+            </h2>
+          </div>
 
           {authError && (
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: 'var(--rounded-md)',
-              background: 'rgba(246, 70, 93, 0.1)',
-              border: '1px solid rgba(246, 70, 93, 0.3)',
-              color: 'var(--colors-risk-escalating)',
-              fontSize: '13px',
-              marginBottom: '24px',
-            }}>
+            <div
+              style={{
+                padding: '12px 16px',
+                borderRadius: 'var(--rounded-md)',
+                background: 'rgba(246, 70, 93, 0.1)',
+                border: '1px solid rgba(246, 70, 93, 0.3)',
+                color: 'var(--colors-risk-escalating)',
+                fontSize: '13px',
+                marginBottom: '20px',
+                lineHeight: '1.4',
+              }}
+            >
               ⚠️ {authError}
             </div>
           )}
 
           <form onSubmit={authMode === 'login' ? handleLogin : handleSignup}>
             {authMode === 'signup' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label className="body-sm" style={{ color: 'var(--colors-muted-strong)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                  ADMIN USERNAME
+              <div style={{ marginBottom: '18px' }}>
+                <label
+                  style={{
+                    color: '#929aa5',
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Admin Username
                 </label>
                 <input
                   type="text"
-                  className="input-text"
-                  placeholder="e.g. admin_secops"
+                  className="login-input"
+                  placeholder="e.g. secops_admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -213,28 +323,48 @@ export default function LoginPage({
               </div>
             )}
 
-            <div style={{ marginBottom: '20px' }}>
-              <label className="body-sm" style={{ color: 'var(--colors-muted-strong)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                EMAIL ADDRESS
+            <div style={{ marginBottom: '18px' }}>
+              <label
+                style={{
+                  color: '#929aa5',
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Email Address
               </label>
               <input
                 type="email"
-                className="input-text"
-                placeholder="e.g. analyst@company.com"
+                className="login-input"
+                placeholder="analyst@enterprise.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <div style={{ marginBottom: authMode === 'signup' ? '20px' : '28px' }}>
-              <label className="body-sm" style={{ color: 'var(--colors-muted-strong)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                SECURITY PASSWORD
+            <div style={{ marginBottom: '8px' }}>
+              <label
+                style={{
+                  color: '#929aa5',
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Security Password
               </label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="input-text"
+                  className="login-input"
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -243,39 +373,55 @@ export default function LoginPage({
                 />
                 <button
                   type="button"
+                  className="eye-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--colors-muted-strong)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px',
-                  }}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} style={{ stroke: 'var(--colors-muted-strong)' }} />
+                    <EyeOff size={18} />
                   ) : (
-                    <Eye size={18} style={{ stroke: 'var(--colors-muted-strong)' }} />
+                    <Eye size={18} />
                   )}
                 </button>
               </div>
             </div>
 
+            {/* Right-aligned Forgot password? link directly under password field */}
+            {authMode === 'login' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                <a
+                  href="#forgot"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Password reset instructions have been sent to your administrator.');
+                  }}
+                  className="interactive-link"
+                  style={{ fontSize: '12px', fontWeight: '500' }}
+                >
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
             {authMode === 'signup' && (
-              <div style={{ marginBottom: '28px' }}>
-                <label className="body-sm" style={{ color: 'var(--colors-muted-strong)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                  WORKSPACE ORGANIZATION NAME
+              <div style={{ marginBottom: '24px', marginTop: '18px' }}>
+                <label
+                  style={{
+                    color: '#929aa5',
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Organization Workspace Name
                 </label>
                 <input
                   type="text"
-                  className="input-text"
-                  placeholder="e.g. Acme Cyber Security"
+                  className="login-input"
+                  placeholder="e.g. Acme Cyber Defense"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   required
@@ -286,37 +432,54 @@ export default function LoginPage({
             <button
               type="submit"
               disabled={authLoading}
-              className="btn-primary"
-              style={{ width: '100%', height: '44px', fontSize: '14px', fontWeight: '700' }}
+              className="btn-glow-primary"
+              style={{ marginTop: authMode === 'signup' ? '8px' : '0' }}
             >
-              {authLoading ? 'Authenticating...' : authMode === 'login' ? 'Authenticate Portal' : 'Register Workspace'}
+              {authLoading ? (
+                'Authenticating...'
+              ) : authMode === 'login' ? (
+                'Sign In to Terminal'
+              ) : (
+                'Register Workspace'
+              )}
             </button>
           </form>
 
-          <div style={{ marginTop: '24px', textAlign: 'center' }}>
-            <button
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'signup' : 'login');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--colors-primary)',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              {authMode === 'login' ? 'Setup new organization workspace →' : 'Log in with existing credentials →'}
-            </button>
+          {/* Centered New user? Register / Sign In toggle link below button */}
+          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '13px', color: '#707a8a' }}>
+            {authMode === 'login' ? (
+              <>
+                New user?{' '}
+                <span
+                  onClick={() => setAuthMode('signup')}
+                  className="interactive-link"
+                  style={{ fontWeight: '600' }}
+                >
+                  Register
+                </span>
+              </>
+            ) : (
+              <>
+                Already registered?{' '}
+                <span
+                  onClick={() => setAuthMode('login')}
+                  className="interactive-link"
+                  style={{ fontWeight: '600' }}
+                >
+                  Sign In
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Empty bottom spacer to ensure balance */}
-        <div style={{ height: '32px' }} />
+        {/* Footer info line */}
+        <div style={{ fontSize: '11px', color: '#707a8a', textAlign: 'center' }}>
+          Protected by CipherWatch Zero-Knowledge Telemetry
+        </div>
       </div>
 
-      {/* Privacy Disclosure Audit Modal */}
+      {/* Audit Privacy Disclosure Modal */}
       {isPrivacyModalOpen && <PrivacyModal onClose={() => setIsPrivacyModalOpen(false)} />}
     </div>
   )
