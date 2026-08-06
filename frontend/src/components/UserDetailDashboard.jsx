@@ -163,7 +163,7 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP NAVIGATION BAR                                         */}
@@ -261,24 +261,7 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
             &larr; Back to {currentOrg.name}
           </button>
 
-          {onSwitchView && (
-            <button
-              onClick={() => onSwitchView('soc')}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              🛡️ SOC Threat Sequence
-            </button>
-          )}
+
 
           <NotificationCenter userEmail={currentUser?.email} />
 
@@ -330,11 +313,12 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
       {/* ------------------------------------------------------------- */}
       <main
         style={{
+          flex: 1,
           padding: '24px 28px 40px 28px',
           display: 'grid',
-          gridTemplateColumns: '1fr 340px',
+          gridTemplateColumns: 'calc(70% - 12px) calc(30% - 12px)',
           gap: '24px',
-          alignItems: 'start',
+          alignItems: 'stretch',
         }}
       >
         {/* ========================================================= */}

@@ -3,9 +3,11 @@ import { Shield, Activity, Building, Key, RefreshCw, Edit3, Trash2, Plus, Chevro
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
 import NotificationCenter from './NotificationCenter'
 import UserDetailDashboard from './UserDetailDashboard'
+import OrganizationSwitchModal from './OrganizationSwitchModal'
 
-export default function OrganizationDashboard({ org, onBackToAdmin, currentUser, onSwitchView, onLogout, onSwitchOrg, onSelectUser }) {
+export default function OrganizationDashboard({ org, onBackToAdmin, currentUser, onLogout, onSwitchOrg, onSelectUser, organizations, onSelectOrg }) {
   const [selectedUser, setSelectedUser] = useState(null)
+  const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false)
 
   // Current organization data fallback
   const currentOrg = org || {
@@ -254,7 +256,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP NAVIGATION BAR (IDENTICAL TO ADMIN DASHBOARD)          */}
@@ -330,7 +332,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
           </span>
         </div>
 
-        {/* Right Side: Back Button + Notification Center + Controls */}
+        {/* Right Side: Back Button + Organization Selector + Notification Center + Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             onClick={onBackToAdmin}
@@ -354,45 +356,71 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
             &larr; All Organizations
           </button>
 
-          {onSwitchView && (
-            <button
-              onClick={() => onSwitchView('soc')}
+          {/* Organization Switcher Dropdown */}
+          {organizations && organizations.length > 0 && (
+            <div
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(252, 213, 53, 0.3)',
+                padding: '4px 12px',
                 borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
               }}
             >
-              <Shield size={14} /> SOC Threat Sequence
-            </button>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '800', letterSpacing: '0.5px' }}>
+                SWITCH ORG:
+              </span>
+              <select
+                value={currentOrg.id}
+                onChange={(e) => {
+                  const targetId = parseInt(e.target.value, 10)
+                  const found = organizations.find((o) => o.id === targetId)
+                  if (found && onSelectOrg) {
+                    onSelectOrg(found)
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#fcd535',
+                  fontWeight: '800',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id} style={{ backgroundColor: '#0c0f1d', color: '#ffffff' }}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* Email Notification Bell */}
           <NotificationCenter userEmail={currentUser?.email} />
 
-          {onSwitchOrg && (
-            <button
-              onClick={onSwitchOrg}
-              style={{
-                background: 'none',
-                border: '1px solid var(--colors-hairline-on-dark)',
-                color: '#94a3b8',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                fontWeight: '600',
-              }}
-            >
-              Switch Org
-            </button>
-          )}
+          <button
+            onClick={() => setIsSwitchModalOpen(true)}
+            style={{
+              background: 'rgba(252, 213, 53, 0.1)',
+              border: '1px solid rgba(252, 213, 53, 0.3)',
+              color: '#fcd535',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            🏢 Switch Org
+          </button>
 
           {onLogout && (
             <button
@@ -745,7 +773,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
       {/* ------------------------------------------------------------- */}
       {/* 4. MAIN BODY - THREE PANELS (SAME LAYOUT AS ADMIN DASHBOARD)  */}
       {/* ------------------------------------------------------------- */}
-      <main style={{ padding: '8px 28px 40px 28px', display: 'grid', gridTemplateColumns: 'minmax(340px, 1.2fr) minmax(380px, 1fr)', gap: '24px' }}>
+      <main style={{ flex: 1, padding: '8px 28px 40px 28px', display: 'grid', gridTemplateColumns: 'calc(55% - 12px) calc(45% - 12px)', gap: '24px', alignItems: 'stretch' }}>
         
         {/* ========================================================= */}
         {/* LEFT PANEL: USER LIST (Taller, Spans both right panels)  */}
@@ -1343,6 +1371,17 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
           </div>
         </div>
       )}
+
+      {/* Organization Switch Modal */}
+      <OrganizationSwitchModal
+        isOpen={isSwitchModalOpen}
+        onClose={() => setIsSwitchModalOpen(false)}
+        organizations={organizations}
+        currentOrgId={currentOrg.id}
+        onSelectOrg={(targetOrg) => {
+          if (onSelectOrg) onSelectOrg(targetOrg)
+        }}
+      />
 
       {/* ------------------------------------------------------------- */}
       {/* KEYFRAME ANIMATIONS                                           */}
