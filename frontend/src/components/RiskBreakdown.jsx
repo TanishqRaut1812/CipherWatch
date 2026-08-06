@@ -4,8 +4,8 @@ const FACTOR_METADATA = [
   { key: 'isolation_forest_ml', label: 'Isolation Forest ML', maxPts: 25, grad: 'var(--gradient-primary)' },
   { key: 'rule_heuristics', label: 'Rule Heuristics', maxPts: 25, grad: 'var(--gradient-primary-reverse)' },
   { key: 'folder_sensitivity', label: 'Folder Sensitivity', maxPts: 10, grad: 'var(--gradient-risk-escalating)' },
-  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, grad: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)' },
-  { key: 'graph_topology', label: 'Graph Topology', maxPts: 15, grad: 'linear-gradient(135deg, #c084fc 0%, #a855f7 100%)' },
+  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, grad: 'linear-gradient(135deg, #ffe066 0%, #fcd535 100%)' },
+  { key: 'graph_topology', label: 'Graph Topology', maxPts: 15, grad: 'linear-gradient(135deg, #ff7b89 0%, #f6465d 100%)' },
   { key: 'longitudinal_drift', label: '14-Day Longitudinal Drift', maxPts: 10, grad: 'var(--gradient-risk-contained)' },
 ];
 

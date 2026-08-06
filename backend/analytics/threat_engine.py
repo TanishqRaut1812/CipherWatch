@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 from backend.logging_config import logger
-from backend.db.models import AgentModel, AlertModel, FSEventModel, ProcessEventModel, MetricsSnapshotModel
+from backend.db.models import AgentModel, AlertModel, FSEventModel, ProcessEventModel, MetricsSnapshotModel, OrganizationModel, UserModel
+from backend.services.email_service import send_high_threat_alert_email
 
 SUSPICIOUS_PATHS = [
     "/tmp",
@@ -281,5 +282,28 @@ class ThreatEngine:
 
         if created_alerts:
             db.commit()
+
+            # Find organization owner to send high-severity threat notification email
+            try:
+                org = db.query(OrganizationModel).filter(OrganizationModel.id == agent.org_id).first()
+                if org and org.owner_user_id:
+                    owner = db.query(UserModel).filter(UserModel.id == org.owner_user_id).first()
+                    if owner and owner.email:
+                        for alert in created_alerts:
+                            sev = alert.severity.upper()
+                            if sev in ("CRITICAL", "HIGH", "WARNING"):
+                                send_high_threat_alert_email(
+                                    admin_email=owner.email,
+                                    org_name=org.name,
+                                    device_name=agent.device_name or agent.hostname,
+                                    hostname=agent.hostname,
+                                    severity=alert.severity,
+                                    rule_id=alert.rule_id or "THREAT_RULE",
+                                    risk_score=alert.risk_score or 0.85,
+                                    message=alert.message,
+                                    alert_time=alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                                )
+            except Exception as e:
+                logger.error("Failed to process email alerts for agent {}: {}", agent.id, e)
 
         return created_alerts

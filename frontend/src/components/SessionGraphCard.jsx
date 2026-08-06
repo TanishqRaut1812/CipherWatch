@@ -43,7 +43,7 @@ export default function SessionGraphCard({ session }) {
         <svg viewBox="0 0 760 160" style={{ width: '100%', minWidth: '600px', height: 'auto', display: 'block' }}>
           <defs>
             <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="0%" stopColor="#0ecb81" />
               <stop offset="50%" stopColor="#fcd535" />
               <stop offset="100%" stopColor="#f6465d" />
             </linearGradient>

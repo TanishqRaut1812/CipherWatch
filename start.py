@@ -43,7 +43,7 @@ def main():
         except Exception:
             pass
 
-    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"]
+    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"]
     backend_proc = subprocess.Popen(backend_cmd)
 
     # Wait for backend server to spin up

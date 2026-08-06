@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Shield, Search } from 'lucide-react';
 import PrivacyModal from './PrivacyModal';
 
 export const PrivacyBanner = () => {
@@ -20,7 +21,7 @@ export const PrivacyBanner = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '14px', color: 'var(--colors-primary)' }}>🛡️</span>
+          <Shield size={16} color="var(--colors-primary)" />
           <span>
             <strong style={{ color: 'var(--colors-primary)' }}>ZERO-PRIVACY INVASION GUARANTEE:</strong> 0% Payload Inspection • Zero Screen Recording • Disclosed Metadata Only
           </span>
@@ -38,9 +39,12 @@ export const PrivacyBanner = () => {
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
           }}
         >
-          🔍 Audit Privacy Policy & Disclosures
+          <Search size={12} /> Audit Privacy Policy & Disclosures
         </button>
       </div>
 

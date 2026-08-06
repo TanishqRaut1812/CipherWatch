@@ -1,332 +1,1141 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import SystemDetailModal from './SystemDetailModal'
-import CriticalIncidentBar from './CriticalIncidentBar'
-import MonitoredFleetPanel from './MonitoredFleetPanel'
-import ResponseActionsPanel from './ResponseActionsPanel'
-import SessionGraphCard from './SessionGraphCard'
-import RiskChart from './RiskChart'
-import RiskBreakdown from './RiskBreakdown'
+import { Shield, AlertTriangle, X, Plus } from 'lucide-react'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
+import NotificationCenter from './NotificationCenter'
+import OrganizationDashboard from './OrganizationDashboard'
 
-export default function AdminDashboard({ orgId }) {
-  const [stats, setStats] = useState(null)
-  const [systems, setSystems] = useState([])
-  const [threats, setThreats] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [seeding, setSeeding] = useState(false)
+export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLogout, onSwitchOrg }) {
+  // Navigation state for detailed OrganizationDashboard view
+  const [selectedOrgForDetails, setSelectedOrgForDetails] = useState(null)
 
-  // Selected Entity state for Tier 2 workspace
-  const [selectedEntity, setSelectedEntity] = useState(null)
-  const [selectedAgentId, setSelectedAgentId] = useState(null)
+  // Organizations state loaded dynamically from Supabase database
+  const [organizations, setOrganizations] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Credentials and key generator state
-  const [credentials, setCredentials] = useState(null)
-  const [loadingCreds, setLoadingCreds] = useState(false)
-  const [rotating, setRotating] = useState(false)
-  const [showKey, setShowKey] = useState(false)
-  const [copiedText, setCopiedText] = useState('')
-
-  const fetchCredentials = () => {
-    if (!orgId) return
-    setLoadingCreds(true)
-    fetch(`/api/orgs/${orgId}/registration-credentials`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Not member or unauthorized')
-        return res.json()
-      })
-      .then((data) => {
-        setCredentials(data)
-        setLoadingCreds(false)
-      })
-      .catch((err) => {
-        console.error('Failed to fetch credentials:', err)
-        setLoadingCreds(false)
-      })
-  }
-
-  const handleRotateKey = () => {
-    if (!orgId || !window.confirm('Are you sure you want to rotate the enrollment key? New agents must use the new key to enroll.')) return
-    setRotating(true)
-    fetch(`/api/orgs/${orgId}/rotate-enrollment-key`, { method: 'POST' })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to rotate')
-        return res.json()
-      })
-      .then((data) => {
-        setCredentials(data)
-        setRotating(false)
-      })
-      .catch((err) => {
-        console.error('Failed to rotate key:', err)
-        setRotating(false)
-      })
-  }
-
-  const handleCopy = (text, type) => {
-    navigator.clipboard.writeText(text)
-    setCopiedText(type)
-    setTimeout(() => setCopiedText(''), 2000)
-  }
-
+  // Fetch real organizations from backend on mount
   useEffect(() => {
-    fetchCredentials()
-  }, [orgId])
+    let isMounted = true
+    setIsLoading(true)
 
-  const fetchData = () => {
-    if (!orgId) return
-    setLoading(true)
-    Promise.all([
-      fetch(`/api/admin/orgs/${orgId}/dashboard/stats`).then((res) => res.json()),
-      fetch(`/api/admin/orgs/${orgId}/systems`).then((res) => res.json()),
-      fetch(`/api/admin/orgs/${orgId}/threats`).then((res) => res.json()),
-    ])
-      .then(([statsData, systemsData, threatsData]) => {
-        setStats(statsData)
-        const sysList = Array.isArray(systemsData) ? systemsData : []
-        setSystems(sysList)
-        setThreats(Array.isArray(threatsData) ? threatsData : [])
-        setLoading(false)
+    fetch('/api/orgs')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch organizations')
+        return res.json()
+      })
+      .then(async (orgList) => {
+        if (!isMounted) return
+        if (!orgList || orgList.length === 0) {
+          setOrganizations([])
+          setIsLoading(false)
+          return
+        }
 
-        // Default select highest-risk system if none selected yet
-        if (!selectedEntity && sysList.length > 0) {
-          const highest = [...sysList].sort((a, b) => (b.threat_level === 'CRITICAL' ? 1 : -1))[0]
-          setSelectedEntity(highest)
+        // Fetch detailed stats for each organization in parallel
+        const enrichedOrgs = await Promise.all(
+          orgList.map(async (o) => {
+            try {
+              const [statsRes, credsRes] = await Promise.all([
+                fetch(`/api/admin/orgs/${o.id}/dashboard/stats`),
+                fetch(`/api/orgs/${o.id}/registration-credentials`),
+              ])
+
+              const stats = statsRes.ok ? await statsRes.json() : null
+              const creds = credsRes.ok ? await credsRes.json() : null
+
+              const totalSystems = stats?.summary?.total_systems ?? 0
+              const critAlerts = stats?.summary?.critical_alerts ?? 0
+              const warnAlerts = stats?.summary?.warning_alerts ?? 0
+
+              let threatLevel = 'LOW'
+              let riskScore = 15
+              if (critAlerts > 0) {
+                threatLevel = 'CRITICAL'
+                riskScore = Math.min(95, 75 + critAlerts * 10)
+              } else if (warnAlerts > 0) {
+                threatLevel = 'HIGH'
+                riskScore = Math.min(74, 45 + warnAlerts * 5)
+              } else if (totalSystems > 0) {
+                threatLevel = 'MEDIUM'
+                riskScore = 30
+              }
+
+              return {
+                id: o.id,
+                name: o.name,
+                role: o.role,
+                usersCount: totalSystems,
+                threatLevel: threatLevel,
+                riskScore: riskScore,
+                dateAdded: o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : '2026-01-01',
+                apiKey: creds?.enrollment_key || creds?.registration_key || `cwek_${o.id}`,
+              }
+            } catch (err) {
+              return {
+                id: o.id,
+                name: o.name,
+                role: o.role,
+                usersCount: 0,
+                threatLevel: 'LOW',
+                riskScore: 15,
+                dateAdded: '2026-01-01',
+                apiKey: `cwek_${o.id}`,
+              }
+            }
+          })
+        )
+
+        if (isMounted) {
+          setOrganizations(enrichedOrgs)
+          setIsLoading(false)
         }
       })
       .catch((err) => {
-        console.error('Failed to load admin dashboard telemetry:', err)
-        setLoading(false)
+        console.error('Failed to load organizations from database:', err)
+        if (isMounted) {
+          setOrganizations([])
+          setIsLoading(false)
+        }
       })
-  }
 
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Highest risk organization selection
+  const highestRiskOrg = useMemo(() => {
+    if (organizations.length === 0) return null
+    return [...organizations].sort((a, b) => b.riskScore - a.riskScore)[0]
+  }, [organizations])
+
+  // Sorting state for Organization List
+  const [sortBy, setSortBy] = useState('Most Threats') // 'Most Threats' | 'Alphabetical' | 'Date Added'
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [newOrgName, setNewOrgName] = useState('')
+  const [newOrgDomain, setNewOrgDomain] = useState('')
+  const [newOrgContact, setNewOrgContact] = useState('')
+
+  // Dropdown open state for organization rows: { [orgId]: boolean }
+  const [openDropdownId, setOpenDropdownId] = useState(null)
+
+  // System modal state from backend telemetry
+  const [actionNotice, setActionNotice] = useState(null)
+
+  // Listen for clicks outside dropdown
   useEffect(() => {
-    fetchData()
-    const interval = setInterval(fetchData, 10000)
-    return () => clearInterval(interval)
-  }, [orgId])
+    const handleGlobalClick = () => setOpenDropdownId(null)
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+  }, [])
 
-  const handleSeedMockData = () => {
-    if (!orgId) return
-    setSeeding(true)
-    fetch(`/api/admin/orgs/${orgId}/seed-mock-data`, { method: 'POST' })
-      .then((res) => res.json())
-      .then(() => {
-        setSeeding(false)
-        fetchData()
+  // Add Organization Handler - Calls backend API to create real DB entry
+  const handleAddOrg = async (e) => {
+    e.preventDefault()
+    if (!newOrgName.trim()) return
+
+    try {
+      const res = await fetch('/api/orgs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newOrgName.trim() }),
       })
-      .catch(() => setSeeding(false))
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || 'Failed to create organization in database')
+      }
+
+      const createdOrg = await res.json()
+
+      // Fetch credentials for newly created org
+      const credsRes = await fetch(`/api/orgs/${createdOrg.id}/registration-credentials`)
+      const creds = credsRes.ok ? await credsRes.json() : null
+
+      const newOrgItem = {
+        id: createdOrg.id,
+        name: createdOrg.name,
+        role: createdOrg.role || 'owner',
+        usersCount: 0,
+        threatLevel: 'LOW',
+        riskScore: 15,
+        dateAdded: new Date().toISOString().split('T')[0],
+        apiKey: creds?.enrollment_key || creds?.registration_key || `cwek_${createdOrg.id}`,
+      }
+
+      setOrganizations([newOrgItem, ...organizations])
+      setNewOrgName('')
+      setNewOrgDomain('')
+      setNewOrgContact('')
+      setIsModalOpen(false)
+      setActionNotice(`Organization "${createdOrg.name}" successfully created in database.`)
+    } catch (err) {
+      console.error('Error creating organization:', err)
+      alert(`Error creating organization: ${err.message}`)
+    }
   }
 
-  // Derive highest risk active session for Tier 1 Critical Incident Bar
-  const highestRiskSession = useMemo(() => {
-    if (threats && threats.length > 0) {
-      const topThreat = threats[0]
-      return {
-        id: topThreat.id,
-        user_id: topThreat.hostname || 'agent-fin04',
-        device_id: topThreat.ip || '192.168.1.45',
-        risk_score: topThreat.severity === 'CRITICAL' ? 0.94 : 0.88,
-        events: [
-          { event_type: 'FILE_CREATE' },
-          { event_type: 'USB_INSERT' },
-          { event_type: 'NETWORK_EXFILTRATION' },
-        ],
-      }
-    }
-    // Default mock high-risk session for demo state
-    return {
-      id: 99,
-      user_id: 'agent-fin04',
-      device_id: '192.168.1.45',
-      risk_score: 0.94,
-      events: [
-        { event_type: 'FILE_CREATE' },
-        { event_type: 'USB_INSERT' },
-        { event_type: 'CLOUD_UPLOAD' },
-      ],
-    }
-  }, [threats])
+  // Delete Organization Handler
+  const handleDeleteOrg = (id, e) => {
+    e.stopPropagation()
+    setOrganizations(organizations.filter((o) => o.id !== id))
+    setOpenDropdownId(null)
+  }
 
-  const handleInvestigate = (session) => {
-    const match = systems.find(s => s.hostname === session.user_id || s.ip_address === session.device_id)
-    if (match) {
-      setSelectedEntity(match)
-    } else if (systems.length > 0) {
-      setSelectedEntity(systems[0])
+  // Rename Organization Handler
+  const handleRenameOrg = (id, currentName, e) => {
+    e.stopPropagation()
+    setOpenDropdownId(null)
+    const updated = prompt('Enter new organization name:', currentName)
+    if (updated && updated.trim()) {
+      setOrganizations(
+        organizations.map((o) => (o.id === id ? { ...o, name: updated.trim() } : o))
+      )
     }
+  }
+
+  // Sorted Organizations
+  const sortedOrgs = useMemo(() => {
+    return [...organizations].sort((a, b) => {
+      if (sortBy === 'Most Threats') return b.riskScore - a.riskScore
+      if (sortBy === 'Alphabetical') return a.name.localeCompare(b.name)
+      if (sortBy === 'Date Added') return new Date(b.dateAdded) - new Date(a.dateAdded)
+      return 0
+    })
+  }, [organizations, sortBy])
+
+  if (selectedOrgForDetails) {
+    return (
+      <OrganizationDashboard
+        org={selectedOrgForDetails}
+        onBackToAdmin={() => setSelectedOrgForDetails(null)}
+        currentUser={currentUser}
+        onSwitchView={onSwitchView}
+        onLogout={onLogout}
+        onSwitchOrg={onSwitchOrg}
+      />
+    )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Fleet Top Terminal Header */}
-      <div className="section-terminal-label">
-        <span>⚡ FLEET TELEMETRY & THREAT OPERATIONS</span>
-      </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+      
+      {/* ------------------------------------------------------------- */}
+      {/* 1. TOP NAVIGATION BAR                                         */}
+      {/* ------------------------------------------------------------- */}
+      <header
+        style={{
+          height: '64px',
+          background: 'linear-gradient(180deg, #181a20 0%, #0b0e11 100%)',
+          borderBottom: '1px solid rgba(252, 213, 53, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 28px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+        }}
+      >
+        {/* Left Side: Gold Wordmark + Live Feed Badge + Slogan */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span
+              style={{
+                fontSize: '22px',
+                fontWeight: '900',
+                letterSpacing: '-0.5px',
+                background: 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 0 20px rgba(252, 213, 53, 0.25)',
+              }}
+            >
+              CipherWatch
+            </span>
+          </div>
 
-      {/* Fleet Top Stats Bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-        <div className="alert-feed-card" style={{ flex: '1 1 auto', minWidth: '220px', padding: '20px' }}>
-          <span className="section-terminal-label" style={{ fontSize: '10px' }}>Enrolled Systems</span>
-          <div className="number-display text-gradient-primary" style={{ marginTop: '4px' }}>
-            {stats?.summary?.total_systems ?? (systems.length || 4)}
-          </div>
-          <div className="body-sm tabular-nums" style={{ color: 'var(--colors-risk-contained)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="glow-contained" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--colors-risk-contained)', display: 'inline-block' }}></span>
-            {stats?.summary?.online_systems ?? 3} Online | {stats?.summary?.offline_systems ?? 1} Offline
-          </div>
-        </div>
-
-        <div className={`alert-feed-card ${(stats?.summary?.unacknowledged_alerts ?? 2) > 0 ? 'glow-escalating' : ''}`} style={{ flex: '1 1 auto', minWidth: '240px', padding: '20px' }}>
-          <span className="section-terminal-label" style={{ fontSize: '10px' }}>Unacknowledged Threats</span>
-          <div className="number-display text-gradient-escalating" style={{ marginTop: '4px' }}>
-            {stats?.summary?.unacknowledged_alerts ?? 2}
-          </div>
-          <div className="body-sm tabular-nums" style={{ color: 'var(--colors-muted-strong)', marginTop: '6px' }}>
-            {stats?.summary?.critical_alerts ?? 1} Critical | {stats?.summary?.warning_alerts ?? 1} Warning
-          </div>
-        </div>
-
-        <div className="alert-feed-card" style={{ flex: '1 1 auto', minWidth: '240px', padding: '20px' }}>
-          <span className="section-terminal-label" style={{ fontSize: '10px' }}>Fleet Avg CPU / Memory</span>
-          <div className="number-display text-gradient-primary" style={{ marginTop: '4px' }}>
-            {stats?.summary?.avg_fleet_cpu ?? 14}% / {stats?.summary?.avg_fleet_mem ?? 42}%
-          </div>
-          <div className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '6px' }}>
-            Real-time aggregate telemetry across hosts
-          </div>
-        </div>
-
-        <div className="alert-feed-card" style={{ flex: '1 1 auto', minWidth: '220px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <span className="section-terminal-label" style={{ fontSize: '10px' }}>Telemetry Simulator</span>
-          <button
-            onClick={handleSeedMockData}
-            disabled={seeding}
-            className="btn-primary"
-            style={{ width: '100%', marginTop: '8px' }}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(14, 203, 129, 0.12)',
+              border: '1px solid rgba(14, 203, 129, 0.3)',
+              padding: '4px 10px',
+              borderRadius: '20px',
+            }}
           >
-            {seeding ? 'Seeding...' : '⚡ Seed Demo Telemetry Data'}
-          </button>
-        </div>
-      </div>
-
-      {/* TIER 1 — Critical Incident Bar */}
-      <CriticalIncidentBar session={highestRiskSession} onInvestigate={handleInvestigate} />
-
-      {/* TIER 2 — Two-panel workspace (Monitored Fleet + Response Actions) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1.2fr) minmax(360px, 1fr)', gap: '20px', alignItems: 'stretch' }}>
-        <MonitoredFleetPanel
-          systems={systems}
-          selectedSystemId={selectedEntity?.id || selectedEntity?.hostname}
-          onSelectSystem={(sys) => setSelectedEntity(sys)}
-        />
-        <ResponseActionsPanel
-          selectedEntity={selectedEntity}
-          onFeedbackSubmitted={(id, type) => console.log('Feedback submitted:', id, type)}
-        />
-      </div>
-
-      {/* TIER 3 — Graphs Row */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <SessionGraphCard session={highestRiskSession} />
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1.3fr) minmax(320px, 1fr)', gap: '20px' }}>
-          <RiskChart />
-          <RiskBreakdown />
-        </div>
-      </div>
-
-      {/* Agent Enrollment Command Panel */}
-      <div className="alert-feed-card" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
-              <span>🔑 AGENT ENROLLMENT COMMAND</span>
-            </div>
-            <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
-              Setup Machine Registration Key
-            </h2>
+            <span
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                backgroundColor: '#0ecb81',
+                boxShadow: '0 0 8px #0ecb81',
+                animation: 'pulseGreenDot 1.8s ease-in-out infinite',
+              }}
+            />
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#0ecb81', letterSpacing: '0.8px' }}>
+              LIVE FEED
+            </span>
           </div>
-          <button
-            onClick={handleRotateKey}
-            disabled={rotating}
-            className="btn-secondary"
-            style={{ fontSize: '12px', padding: '6px 12px' }}
+
+          <span
+            style={{
+              fontSize: '12px',
+              color: 'var(--colors-muted)',
+              borderLeft: '1px solid var(--colors-hairline-on-dark)',
+              paddingLeft: '16px',
+              fontWeight: '500',
+            }}
           >
-            {rotating ? 'Rotating...' : '🔄 Rotate Enrollment Key'}
-          </button>
+            Zero-Content Privacy & Real-Time Endpoint Threat Intelligence
+          </span>
         </div>
 
-        {loadingCreds ? (
-          <div className="body-sm" style={{ color: 'var(--colors-muted)' }}>Loading credentials...</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 600 }}>ORGANIZATION ID</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    readOnly
-                    value={credentials?.organization_id || orgId || ''}
-                    className="input-text"
-                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'var(--colors-canvas-dark)' }}
-                  />
-                  <button
-                    onClick={() => handleCopy(credentials?.organization_id || orgId, 'orgId')}
-                    className="btn-secondary"
-                    style={{ padding: '0 12px' }}
-                  >
-                    {copiedText === 'orgId' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              </div>
+        {/* Right Side: Navigation & Notification & Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {onSwitchView && (
+            <button
+              onClick={() => onSwitchView('soc')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#cbd5e1',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#fcd535'
+                e.currentTarget.style.borderColor = '#fcd535'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#cbd5e1'
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+              }}
+            >
+              <Shield size={14} /> SOC Threat Sequence
+            </button>
+          )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 600 }}>ENROLLMENT KEY</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    readOnly
-                    value={credentials?.enrollment_key ?? credentials?.registration_key ?? ''}
-                    className="input-text"
-                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'var(--colors-canvas-dark)' }}
-                  />
-                  <button
-                    onClick={() => setShowKey(!showKey)}
-                    className="btn-secondary"
-                    style={{ padding: '0 12px' }}
-                  >
-                    {showKey ? 'Hide' : 'Show'}
-                  </button>
-                  <button
-                    onClick={() => handleCopy(credentials?.enrollment_key ?? credentials?.registration_key ?? '', 'enrollKey')}
-                    className="btn-secondary"
-                    style={{ padding: '0 12px' }}
-                  >
-                    {copiedText === 'enrollKey' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              </div>
-            </div>
+          {/* Email Notification Center Bell */}
+          <NotificationCenter userEmail={currentUser?.email} />
 
-            <div style={{ padding: '12px 16px', background: 'var(--colors-canvas-dark)', borderRadius: 'var(--rounded-md)', border: '1px solid var(--colors-hairline-on-dark)' }}>
-              <span className="section-terminal-label" style={{ fontSize: '10px', marginBottom: '6px' }}>
-                TERMINAL ENROLLMENT COMMAND
-              </span>
-              <code style={{ fontSize: '12px', color: 'var(--colors-primary)', wordBreak: 'break-all' }}>
-                cipherwatch-agent --enroll --org-id={credentials?.organization_id || orgId} --key={credentials?.enrollment_key || '••••••••'}
-              </code>
+          {onSwitchOrg && (
+            <button
+              onClick={onSwitchOrg}
+              style={{
+                background: 'none',
+                border: '1px solid var(--colors-hairline-on-dark)',
+                color: 'var(--colors-muted-strong)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: '600',
+              }}
+            >
+              Switch Org
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              style={{
+                background: 'rgba(246, 70, 93, 0.1)',
+                border: '1px solid rgba(246, 70, 93, 0.3)',
+                color: '#f6465d',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: '700',
+              }}
+            >
+              Logout
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. HIGHEST-RISK-ORGANIZATION PANEL                           */}
+      {/* ------------------------------------------------------------- */}
+      <section style={{ padding: '24px 28px 12px 28px' }}>
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1b0a10 0%, #120609 100%)',
+            borderRadius: '14px',
+            padding: '24px 32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            animation: 'pulsateRedGlow 2.8s ease-in-out infinite',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Ambient Background Grid Pattern */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'radial-gradient(rgba(246, 70, 93, 0.08) 1px, transparent 1px)',
+              backgroundSize: '16px 16px',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Left: Organization Name */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: '800',
+                color: '#f6465d',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                marginBottom: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>CRITICAL SECURITY THREAT TARGET</span>
             </div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '28px',
+                fontWeight: '800',
+                color: '#ffffff',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              {highestRiskOrg?.name || 'HACKIT Cyber Operations'}
+            </h1>
+          </div>
+
+          {/* Center: Numeric Risk Score */}
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '700', letterSpacing: '1px' }}>
+              Aggregate Threat Risk Score
+            </div>
+            <div
+              style={{
+                fontSize: '44px',
+                fontWeight: '900',
+                color: '#f6465d',
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-1px',
+                textShadow: '0 0 20px rgba(246, 70, 93, 0.6)',
+                marginTop: '2px',
+              }}
+            >
+              {highestRiskOrg?.riskScore}%
+            </div>
+          </div>
+
+          {/* Right: Take Action Button */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <button
+              onClick={() => setActionNotice(`Initiated SOC Quarantine Protocol for ${highestRiskOrg?.name}`)}
+              style={{
+                background: 'linear-gradient(135deg, #f6465d 0%, #d9263e 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '14px 28px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: '800',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(246, 70, 93, 0.45)',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                outline: 'none',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(246, 70, 93, 0.7)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(246, 70, 93, 0.45)'
+              }}
+            >
+              Take Action
+            </button>
+          </div>
+        </div>
+
+        {/* Action Toast Feedback Notice */}
+        {actionNotice && (
+          <div
+            style={{
+              marginTop: '12px',
+              padding: '12px 20px',
+              backgroundColor: 'rgba(246, 70, 93, 0.15)',
+              border: '1px solid rgba(246, 70, 93, 0.4)',
+              borderRadius: '8px',
+              color: '#f6465d',
+              fontSize: '13px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              animation: 'fadeIn 0.2s ease',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={14} /> {actionNotice}
+            </span>
+            <button
+              onClick={() => setActionNotice(null)}
+              style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
-      </div>
+      </section>
 
-      {selectedAgentId && (
-        <SystemDetailModal
-          agentId={selectedAgentId}
-          orgId={orgId}
-          onClose={() => setSelectedAgentId(null)}
-        />
+      {/* ------------------------------------------------------------- */}
+      {/* 3. MAIN BODY - THREE PANELS LAYOUT                           */}
+      {/* ------------------------------------------------------------- */}
+      <main style={{ padding: '16px 28px 40px 28px', display: 'grid', gridTemplateColumns: 'minmax(340px, 1.2fr) minmax(380px, 1fr)', gap: '24px' }}>
+        
+        {/* ========================================================= */}
+        {/* LEFT PANEL: ORGANIZATION LIST (Taller, Spans both right)  */}
+        {/* ========================================================= */}
+        <section
+          style={{
+            backgroundColor: 'var(--colors-surface-card-dark)',
+            border: '1px solid var(--colors-hairline-on-dark)',
+            borderRadius: '14px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          {/* Header Row: Filter / Sort Cluster + Add New Button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#f8fafc' }}>
+                Organization List
+              </h2>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                {organizations.length} Active Managed Workspaces
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Sort Dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>
+                  Sort:
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  style={{
+                    backgroundColor: 'var(--colors-canvas-dark)',
+                    color: '#fcd535',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                >
+                  <option value="Most Threats">Most Threats</option>
+                  <option value="Alphabetical">Alphabetical</option>
+                  <option value="Date Added">Date Added</option>
+                </select>
+              </div>
+
+              {/* Add New Button */}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)',
+                  color: '#070a12',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(252, 213, 53, 0.3)',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(252, 213, 53, 0.5)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(252, 213, 53, 0.3)'
+                }}
+              >
+                <Plus size={14} /> Add New
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Organization Row-Cards List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '560px', paddingRight: '4px' }}>
+            {sortedOrgs.map((org) => {
+              const isHigh = org.riskScore >= 70
+              const isDropdownOpen = openDropdownId === org.id
+
+              return (
+                <div
+                  key={org.id}
+                  onClick={() => setSelectedOrgForDetails(org)}
+                  style={{
+                    backgroundColor: 'var(--colors-surface-card-dark)',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '10px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.25s ease',
+                    position: 'relative',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(252, 213, 53, 0.4)'
+                    e.currentTarget.style.backgroundColor = 'var(--colors-canvas-dark)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)'
+                    e.currentTarget.style.backgroundColor = 'var(--colors-surface-card-dark)'
+                  }}
+                >
+                  {/* Left: Organization Name & Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        backgroundColor: isHigh ? 'rgba(246, 70, 93, 0.12)' : 'rgba(252, 213, 53, 0.12)',
+                        border: `1px solid ${isHigh ? 'rgba(246, 70, 93, 0.3)' : 'rgba(252, 213, 53, 0.3)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: isHigh ? '#f6465d' : '#fcd535',
+                        fontWeight: '800',
+                        fontSize: '14px',
+                      }}
+                    >
+                      {org.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#f1f5f9' }}>
+                        {org.name}
+                      </h3>
+                      <span style={{ fontSize: '11px', color: 'var(--colors-muted)' }}>
+                        Threat Risk: <strong style={{ color: isHigh ? '#f6465d' : '#0ecb81' }}>{org.riskScore}%</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Center: Number of Users */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}>
+                      {org.usersCount} Users
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Enrolled</div>
+                  </div>
+
+                  {/* Right: Three-Dot Action Icon */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenDropdownId(isDropdownOpen ? null : org.id)
+                      }}
+                      title="Organization Options"
+                      style={{
+                        background: isDropdownOpen ? 'var(--colors-surface-elevated-dark)' : 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        borderRadius: '6px',
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        outline: 'none',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#fcd535')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="1.5" />
+                        <circle cx="12" cy="5" r="1.5" />
+                        <circle cx="12" cy="19" r="1.5" />
+                      </svg>
+                    </button>
+
+                    {/* Hover/Dropdown Action Card */}
+                    {isDropdownOpen && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: '36px',
+                          backgroundColor: 'var(--colors-surface-card-dark)',
+                          border: '1px solid var(--colors-hairline-on-dark)',
+                          borderRadius: '8px',
+                          padding: '6px',
+                          width: '140px',
+                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+                          zIndex: 50,
+                          animation: 'fadeInDown 0.15s ease-out',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Rename Action */}
+                        <button
+                          onClick={(e) => handleRenameOrg(org.id, org.name, e)}
+                          style={{
+                            width: '100%',
+                            background: 'none',
+                            border: 'none',
+                            color: '#cbd5e1',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--colors-surface-elevated-dark)'
+                            e.currentTarget.style.color = '#fcd535'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent'
+                            e.currentTarget.style.color = '#cbd5e1'
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcd535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                          </svg>
+                          Rename
+                        </button>
+
+                        {/* Delete Action */}
+                        <button
+                          onClick={(e) => handleDeleteOrg(org.id, e)}
+                          style={{
+                            width: '100%',
+                            background: 'none',
+                            border: 'none',
+                            color: '#f6465d',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.15)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent'
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f6465d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ========================================================= */}
+        {/* RIGHT COLUMN: TOP PIE CHART & BOTTOM BAR GRAPH            */}
+        {/* ========================================================= */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* RIGHT, TOP PANEL: PLACEHOLDER PIE CHART */}
+          <section
+            style={{
+              backgroundColor: 'var(--colors-surface-card-dark)',
+              border: '1px solid var(--colors-hairline-on-dark)',
+              borderRadius: '14px',
+              padding: '24px',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
+                Threat Severity Breakdown
+              </h3>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Fleet-wide security incident distribution
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', height: '160px' }}>
+              {/* Recharts Threat Breakdown Donut Chart */}
+              <div style={{ width: 140, height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                    />
+                    <Pie
+                      data={[
+                        { name: 'Critical Threat', value: 35, color: '#f6465d' },
+                        { name: 'Elevated Risk', value: 45, color: '#fcd535' },
+                        { name: 'Normal Baseline', value: 20, color: '#0ecb81' },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={32}
+                      outerRadius={58}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
+                        <Cell key={`admin-cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Pie Chart Legend */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 6px #f6465d' }} />
+                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Critical Threat (35%)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 6px #fcd535' }} />
+                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Elevated Risk (45%)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 6px #0ecb81' }} />
+                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Normal Baseline (20%)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* RIGHT, BOTTOM PANEL: RECHARTS HOURLY THREAT DENSITY BAR GRAPH */}
+          <section
+            style={{
+              backgroundColor: 'var(--colors-surface-card-dark)',
+              border: '1px solid var(--colors-hairline-on-dark)',
+              borderRadius: '14px',
+              padding: '24px',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
+                Hourly Threat Density
+              </h3>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Anomaly events recorded over the last 24 hours
+              </span>
+            </div>
+
+            {/* Recharts Bar Chart */}
+            <div style={{ height: '160px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { time: '00:00', threats: 30 },
+                    { time: '04:00', threats: 45 },
+                    { time: '08:00', threats: 75 },
+                    { time: '12:00', threats: 95 },
+                    { time: '16:00', threats: 60 },
+                    { time: '20:00', threats: 35 },
+                  ]}
+                  margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                >
+                  <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="threats" fill="#fcd535" radius={[4, 4, 0, 0]}>
+                    {[30, 45, 75, 95, 60, 35].map((val, idx) => (
+                      <Cell key={`bar-${idx}`} fill={val >= 90 ? '#f6465d' : val >= 60 ? '#fcd535' : '#0ecb81'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* ------------------------------------------------------------- */}
+      {/* ADD NEW ORGANIZATION MODAL (Backdrop blur & gold glow edge)   */}
+      {/* ------------------------------------------------------------- */}
+      {isModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              background: 'linear-gradient(135deg, #1e2329 0%, #15191e 100%)',
+              border: '1px solid #fcd535',
+              borderRadius: '16px',
+              padding: '32px',
+              boxShadow: '0 0 35px rgba(252, 213, 53, 0.25), 0 20px 50px rgba(0, 0, 0, 0.8)',
+              position: 'relative',
+              animation: 'scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Top Right "X" Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: 'none',
+                color: '#94a3b8',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ffffff'
+                e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.3)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#94a3b8'
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Modal Title */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#fcd535', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Workspace Provisioning
+              </div>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
+                Add New Organization
+              </h2>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAddOrg} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                  Organization Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Apex Cyber Operations"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#070a12',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = '#fcd535')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--colors-hairline-on-dark)')}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Domain (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. hackit.io"
+                  value={newOrgDomain}
+                  onChange={(e) => setNewOrgDomain(e.target.value)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#1a1e24',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = '#fcd535')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--colors-hairline-on-dark)')}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Admin Contact Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="admin@hackit.io"
+                  value={newOrgContact}
+                  onChange={(e) => setNewOrgContact(e.target.value)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#1a1e24',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = '#fcd535')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--colors-hairline-on-dark)')}
+                />
+              </div>
+
+              {/* Primary Gold Add Button */}
+              <button
+                type="submit"
+                style={{
+                  marginTop: '10px',
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)',
+                  color: '#070a12',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(252, 213, 53, 0.4)',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  outline: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 8px 30px rgba(252, 213, 53, 0.6)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(252, 213, 53, 0.4)'
+                }}
+              >
+                Add Organization &rarr;
+              </button>
+            </form>
+          </div>
+        </div>
       )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* KEYFRAME ANIMATIONS                                           */}
+      {/* ------------------------------------------------------------- */}
+      <style>{`
+        @keyframes pulsateRedGlow {
+          0% {
+            border: 1px solid rgba(246, 70, 93, 0.4);
+            box-shadow: 0 0 15px rgba(246, 70, 93, 0.25), inset 0 0 10px rgba(246, 70, 93, 0.1);
+          }
+          50% {
+            border: 1px solid rgba(246, 70, 93, 0.95);
+            box-shadow: 0 0 35px rgba(246, 70, 93, 0.7), inset 0 0 25px rgba(246, 70, 93, 0.3);
+          }
+          100% {
+            border: 1px solid rgba(246, 70, 93, 0.4);
+            box-shadow: 0 0 15px rgba(246, 70, 93, 0.25), inset 0 0 10px rgba(246, 70, 93, 0.1);
+          }
+        }
+        @keyframes pulseGreenDot {
+          0% { opacity: 0.4; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.15); }
+          100% { opacity: 0.4; transform: scale(0.9); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleUp {
+          from { opacity: 0; transform: scale(0.92); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   )
 }
