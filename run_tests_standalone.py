@@ -44,21 +44,21 @@ def run_regression_tests():
     reg_key = creds.json()["registration_key"]
     print(f"✓ User + Org created: org_id={org_id}")
 
-    # 3. Test Agent Registration (with org credentials)
-    print("\n[STEP 3] Testing Agent Registration...")
-    reg_resp = client.post("/api/agents/register", json={
+    # 3. Test Agent Enrollment (with org credentials)
+    print("\n[STEP 3] Testing Agent Enrollment...")
+    reg_resp = client.post("/api/agent/enroll", json={
+        "organization_id": creds.json()["organization_id"],
+        "enrollment_key": creds.json()["enrollment_key"],
         "hostname": "prod-sec-workstation-01",
+        "device_uuid": "dev-uuid-standalone-01",
         "os": "Linux 6.5.0-x86_64",
-        "ip": "192.168.1.105",
         "agent_version": "1.2.0",
-        "org_id": org_id,
-        "registration_key": reg_key,
     })
-    assert reg_resp.status_code == 201, f"Expected 201, got {reg_resp.status_code}"
+    assert reg_resp.status_code == 201, f"Expected 201, got {reg_resp.status_code}: {reg_resp.text}"
     reg_data = reg_resp.json()
     agent_id = reg_data["agent_id"]
     token = reg_data["auth_token"]
-    print(f"✓ Agent registered: ID={agent_id}")
+    print(f"✓ Agent enrolled: ID={agent_id}")
 
     # 4. Test Agent Heartbeat & Auth
     print("\n[STEP 4] Testing Bearer Token Authentication & Heartbeat...")

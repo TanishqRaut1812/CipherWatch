@@ -120,33 +120,33 @@ def run_auth_tests():
     reg_key_a = creds["registration_key"]
     print(f"✓ Got registration key for org A: {reg_key_a[:12]}...")
 
-    # ─── Stage 8: Agent registration with org key ─────────────────
-    print("\n[TEST 8] Register agent into Org A using registration key...")
-    agent_reg = client.post("/api/agents/register", json={
+    # ─── Stage 8: Agent enrollment with org key ─────────────────
+    print("\n[TEST 8] Enroll agent into Org A using enrollment key...")
+    agent_reg = client.post("/api/agent/enroll", json={
+        "organization_id": creds.get("organization_id", org_a_id),
+        "enrollment_key": creds.get("enrollment_key", reg_key_a),
         "hostname": "test-workstation-01",
+        "device_uuid": "dev-uuid-test01",
         "os": "Linux 6.5.0",
-        "ip": "10.0.1.50",
         "agent_version": "1.2.0",
-        "org_id": org_a_id,
-        "registration_key": reg_key_a,
     })
     assert agent_reg.status_code == 201, f"Expected 201, got {agent_reg.status_code}: {agent_reg.text}"
     agent_data = agent_reg.json()
     agent_id = agent_data["agent_id"]
     agent_token = agent_data["auth_token"]
-    print(f"✓ Agent registered: {agent_id}")
+    print(f"✓ Agent enrolled: {agent_id}")
 
-    print("\n[TEST 8b] Agent registration with WRONG key...")
-    bad_agent = client.post("/api/agents/register", json={
+    print("\n[TEST 8b] Agent enrollment with WRONG key...")
+    bad_agent = client.post("/api/agent/enroll", json={
+        "organization_id": creds.get("organization_id", org_a_id),
+        "enrollment_key": "cwek_this_is_fake",
         "hostname": "evil-box",
+        "device_uuid": "dev-uuid-evil",
         "os": "Kali",
-        "ip": "10.0.99.1",
         "agent_version": "1.0.0",
-        "org_id": org_a_id,
-        "registration_key": "cwrk_this_is_fake",
     })
     assert bad_agent.status_code == 403
-    print("✓ Invalid registration key correctly rejected with 403.")
+    print("✓ Invalid enrollment key correctly rejected with 403.")
 
     # ─── Stage 9: Org-scoped dashboard stats ──────────────────────
     print("\n[TEST 9] Org A dashboard stats (as User A)...")

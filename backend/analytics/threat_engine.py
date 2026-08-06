@@ -192,6 +192,45 @@ class ElevatedProcessRule(BaseThreatRule):
         return alerts
 
 
+class USBStorageMountRule(BaseThreatRule):
+    """Detects connection of removable USB storage devices from typed usb_events table data."""
+
+    rule_id = "USB_REMOVABLE_STORAGE_MOUNT"
+    name = "Removable USB Storage Drive Connected"
+    default_severity = "warning"
+
+    def evaluate(self, db: Session, agent: AgentModel, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+        alerts = []
+        # Check typed usb_events
+        usb_events = payload.get("usb_events", [])
+        for ev in usb_events:
+            action = ev.get("action") if isinstance(ev, dict) else getattr(ev, "action", None)
+            if action == "connected":
+                dev_name = ev.get("device_name") if isinstance(ev, dict) else getattr(ev, "device_name", "USB Device")
+                mount_pt = ev.get("mount_point") if isinstance(ev, dict) else getattr(ev, "mount_point", "Unknown Mount")
+                alerts.append({
+                    "rule_id": self.rule_id,
+                    "severity": self.default_severity,
+                    "message": f"Removable USB drive '{dev_name}' mounted at '{mount_pt}' on host {agent.hostname}.",
+                    "related_event_id": ev.get("db_id") if isinstance(ev, dict) else None,
+                })
+        # Check raw_events fallback
+        raw_events = payload.get("raw_events", [])
+        for ev in raw_events:
+            if ev.get("event_type") == "usb":
+                meta = ev.get("metadata", {})
+                if meta.get("action") == "connected":
+                    dev_name = meta.get("device_name", "USB Device")
+                    mount_pt = meta.get("mount_point", "Unknown Mount")
+                    alerts.append({
+                        "rule_id": self.rule_id,
+                        "severity": self.default_severity,
+                        "message": f"Removable USB drive '{dev_name}' mounted at '{mount_pt}' on host {agent.hostname}.",
+                        "related_event_id": None,
+                    })
+        return alerts
+
+
 class ThreatEngine:
     """Pluggable threat engine that evaluates registered rules against agent telemetry."""
 
@@ -201,6 +240,7 @@ class ThreatEngine:
             SuspiciousPathProcessRule(),
             SustainedResourceSpikeRule(),
             ElevatedProcessRule(),
+            USBStorageMountRule(),
         ]
 
     def register_rule(self, rule: BaseThreatRule):

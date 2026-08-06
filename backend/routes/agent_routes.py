@@ -9,10 +9,12 @@ from backend.logging_config import logger
 from backend.auth_utils import generate_agent_token, hash_token, verify_token
 from backend.db.models import (
     AgentModel,
+    EventModel,
     FSEventModel,
     MetricsSnapshotModel,
     OrganizationModel,
     ProcessEventModel,
+    USBEventModel,
     UserModel,
     UserOrganizationModel,
 )
@@ -85,43 +87,6 @@ def get_current_agent(
     return agent
 
 
-@router.post("/register", response_model=AgentRegisterResponse, status_code=status.HTTP_201_CREATED)
-def register_agent(payload: AgentRegisterRequest, db: Session = Depends(get_db)):
-    """Self-register an agent using org registration credentials."""
-    # Validate org registration key
-    org = db.query(OrganizationModel).filter(OrganizationModel.id == payload.org_id).first()
-    if not org:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
-    if org.registration_key != payload.registration_key:
-        logger.warning("Agent registration failed: invalid registration_key for org_id={}", payload.org_id)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid organization registration key.")
-
-    agent_id = f"agent_{uuid.uuid4().hex[:12]}"
-    raw_token = generate_agent_token()
-    token_hash = hash_token(raw_token)
-
-    agent = AgentModel(
-        id=agent_id,
-        org_id=org.id,
-        hostname=payload.hostname,
-        os=payload.os,
-        ip=payload.ip,
-        agent_version=payload.agent_version,
-        auth_token_hash=token_hash,
-        enrolled_at=datetime.utcnow(),
-        last_seen_at=datetime.utcnow(),
-    )
-    db.add(agent)
-    db.commit()
-    db.refresh(agent)
-
-    logger.info("Agent registered: id={}, org_id={}, hostname={}, ip={}", agent.id, org.id, agent.hostname, agent.ip)
-
-    return AgentRegisterResponse(
-        agent_id=agent.id,
-        auth_token=raw_token,
-        message="Agent registered successfully. Keep bearer token secret.",
-    )
 
 
 @router.post("/{id}/heartbeat", response_model=HeartbeatResponse)
@@ -219,6 +184,56 @@ def ingest_agent_events(
             "dest_path": fs.dest_path,
         })
 
+    usb_events_count = 0
+    usb_eval_data = []
+    for usb in payload.usb_events:
+        usb_rec = USBEventModel(
+            agent_id=agent.id,
+            timestamp=usb.timestamp or now,
+            action=usb.action,
+            vendor_id=usb.vendor_id,
+            product_id=usb.product_id,
+            device_name=usb.device_name,
+            mount_point=usb.mount_point,
+        )
+        db.add(usb_rec)
+        db.flush()
+        usb_events_count += 1
+        usb_eval_data.append({
+            "db_id": usb_rec.id,
+            "action": usb.action,
+            "vendor_id": usb.vendor_id,
+            "product_id": usb.product_id,
+            "device_name": usb.device_name,
+            "mount_point": usb.mount_point,
+        })
+
+    raw_events_count = 0
+    raw_eval_data = []
+    for raw in payload.raw_events:
+        event_id = raw.get("event_id") or str(uuid.uuid4())
+        event_type = raw.get("event_type") or "generic"
+        user_id = raw.get("user_id") or agent.hostname
+        meta = raw.get("metadata") or {}
+        
+        event_rec = EventModel(
+            event_id=event_id,
+            org_id=agent.org_id,
+            agent_id=agent.id,
+            timestamp=now,
+            user_id=user_id,
+            device_id=agent.id,
+            event_type=str(event_type),
+            event_metadata=meta,
+        )
+        db.add(event_rec)
+        raw_events_count += 1
+        raw_eval_data.append({
+            "event_id": event_id,
+            "event_type": str(event_type),
+            "metadata": meta,
+        })
+
     db.commit()
 
     # Pass payload into threat engine rules
@@ -226,15 +241,19 @@ def ingest_agent_events(
         "metrics": payload.metrics.model_dump() if payload.metrics else None,
         "process_events": proc_eval_data,
         "fs_events": fs_eval_data,
+        "usb_events": usb_eval_data,
+        "raw_events": raw_eval_data,
     }
     alerts_created = threat_engine.evaluate_payload(db, agent, threat_payload)
 
     logger.info(
-        "Telemetry ingested: agent_id={}, metrics={}, procs={}, fs_events={}, alerts_triggered={}",
+        "Telemetry ingested: agent_id={}, metrics={}, procs={}, fs_events={}, usb_events={}, raw_events={}, alerts_triggered={}",
         agent.id,
         metrics_count,
         proc_events_count,
         fs_events_count,
+        usb_events_count,
+        raw_events_count,
         len(alerts_created),
     )
 
@@ -244,6 +263,7 @@ def ingest_agent_events(
         metrics_ingested=metrics_count,
         process_events_ingested=proc_events_count,
         fs_events_ingested=fs_events_count,
+        usb_events_ingested=usb_events_count,
         alerts_triggered=len(alerts_created),
     )
 
