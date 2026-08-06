@@ -25,6 +25,3 @@ frontend/node_modules/
 .npm
 *.log
 dist/
-
-
-
