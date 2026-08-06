@@ -1,204 +1,218 @@
 # CipherWatch 🛡️
 
-> **Privacy-Preserving Metadata-Only Insider Threat Intelligence & Intent Reconstruction Platform**
+> **Privacy-Preserving, Metadata-Only Endpoint Insider Threat Detection & Intent Reconstruction Platform**
 
-CipherWatch detects insider threat data exfiltration (USB transfers, unauthorized cloud uploads, off-hours archive staging) using **metadata strictly** — timestamps, transfer volumes, file extensions, process trees, network endpoints, and device IDs — **without ever inspecting user file contents or capturing screen images**.
-
----
-
-## 🔍 Key Architecture & Capabilities
-
-1. **Endpoint Agent & Scenario Simulator (Metadata-Only):**
-   - Monitors filesystem events, USB insertions, process launches, and network connections (`watchdog`, `psutil`).
-   - Configurable watch scope (`targeted` vs `full_home`) with noise exclusion lists (`.git`, `node_modules`, `.venv`, `.next`, etc.) and automated inotify limit safety checks.
-   - *Note on benchmarking & inotify*: Baseline directory counts on developer machines (e.g. `~/Desktop` containing code repositories) will be significantly higher than on standard end-user endpoints. In `full_home` mode, inotify watch consumption (e.g. ~57% on dev setups) shares system limits with IDEs and sync tools — evaluate per-deployment to prevent `ENOSPC` watch exhaustion.
-   - Features robust `PermissionError` handling in filesystem monitors to gracefully bypass restricted paths without crashing.
-   - Enforces an organization-scoped agent enrollment flow (`/api/agent/enroll`) with secure bearer token authentication and periodic heartbeats (`/api/heartbeat`).
-   - Asynchronously batches telemetry payloads and flushes them directly to `POST /api/agents/{agent_id}/events`.
-   - Ingests USB events into a dedicated, schema-compliant `usb_events` database table.
-   - Includes a synthetic scenario injector CLI (`simulator/main.py`) for reproducible testing.
-2. **Session Correlator & Timeline Visualizer:**
-   - Automatically groups raw system events into logical user operational sessions based on configurable idle windows.
-3. **Session Relationship Graph Engine:**
-   - Uses NetworkX topological graph analysis to trace multi-hop exfiltration sequences (e.g. `FILE_CREATE (.7z)` -> `USB_INSERT` -> `NETWORK_CONNECTION (anonfiles.com)`).
-4. **Hybrid Anomaly & Intent Classifier Engine:**
-   - Multi-stage risk scoring combining scikit-learn Isolation Forest anomaly scoring, per-user Z-score baseline deviation, rule multipliers, and Random Forest intent classification.
-5. **AI Incident Explainability Loop:**
-   - Anthropic LLM prompt builder generating plain-English SOC analyst incident summaries from structured session telemetry without exposing raw user data.
-6. **Analyst Feedback & Baseline Auto-Adjustment Engine:**
-   - Feedback API (`POST /api/alerts/{id}/feedback`) allowing analysts to mark `CONFIRMED_THREAT` or `FALSE_POSITIVE`, dynamically tuning baseline sensitivity.
-7. **Disclosed Surveillance & Privacy Guarantee Modal:**
-   - Top persistent UI Privacy Banner and interactive audit modal detailing exact items **Never Collected** vs **Metadata Only Collected**.
+CipherWatch is an enterprise-grade endpoint security and threat intelligence platform designed to detect insider data exfiltration (USB transfers, cloud uploads, off-hours archive staging) using **strict metadata telemetry** — file paths, sizes, extensions, process trees, network endpoints, and device IDs — **without ever reading file contents, capturing screenshots, or logging keystrokes**.
 
 ---
 
-## 🛠️ Technical Stack
+## 🌟 Key Features & Capabilities
 
-- **Package Manager:** `uv` / `pip`
-- **Backend Service:** Python 3.10+, FastAPI, SQLAlchemy (SQLite ORM), Pydantic v2
-- **Analytics & ML:** `scikit-learn` (Isolation Forest, Random Forest Intent Classifier), `NetworkX`
+- 🐧 **Standalone Linux Endpoint Agent**: Native Linux binary (compiled via PyInstaller) running as a systemd daemon. Zero Python dependency on target endpoints.
+- 🔒 **Zero-Privacy Invasion Guarantee**: Operates strictly within privacy boundaries. Captures metadata only; never inspects file contents, screen pixels, or keystrokes.
+- 🏢 **Multi-Tenant Fleet Architecture**: Organization-scoped agent enrollment with unique per-device tokens (`/api/agent/enroll`), heartbeat management, and isolated telemetry ingestion.
+- 🕸️ **Session Graph Engine**: Uses NetworkX topological analysis to link multi-hop exfiltration vectors (e.g., `FILE_CREATE (.7z)` ➔ `USB_INSERT` ➔ `NETWORK_CONNECT (anonfiles.com)`).
+- 🧠 **Hybrid ML Risk Engine**: Multi-tier scoring using Isolation Forest anomaly detection, per-user baseline deviation (Z-scores), and Random Forest intent classification.
+- 💬 **AI Incident Explainability**: Generates plain-English, action-oriented incident summaries for SOC analysts using LLM prompt construction without exposing raw payload data.
+- 📊 **Real-Time SOC Dashboard**: Modern React/Vite dashboard featuring SVG risk time-series charts, interactive timeline visualizers, and privacy audit modals.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Endpoint ["Target Linux Endpoint"]
+        A[Filesystem Monitor] --> E[Event Publisher]
+        B[USB Device Monitor] --> E
+        C[Process Monitor] --> E
+        D[Network Monitor] --> E
+        E -->|HTTPS / Bearer Auth| F[CipherWatch REST API]
+    end
+
+    subgraph Backend ["CipherWatch Backend Engine"]
+        F --> G[(SQLite / Postgres)]
+        G --> H[Session Correlator]
+        H --> I[NetworkX Session Graph Engine]
+        H --> J[Hybrid ML & Intent Classifier]
+        J --> K[AI Incident Summarizer]
+    end
+
+    subgraph Frontend ["SOC Analyst Dashboard"]
+        K --> L[React Dashboard]
+        J --> L
+        L -->|Feedback & Tuning| F
+    end
+```
+
+---
+
+## 🛠️ Tech Stack
+
+- **Endpoint Agent:** Python 3.11, PyInstaller, `watchdog`, `psutil`, `httpx`, `pydantic`
+- **Backend Service:** Python 3.10+, FastAPI, SQLAlchemy, SQLite/PostgreSQL, Uvicorn
+- **Analytics & ML:** `scikit-learn` (Isolation Forest, Random Forest), `NetworkX`
 - **LLM Integration:** Anthropic API (Claude 3.5 Sonnet / Haiku)
-- **Frontend Dashboard:** React, Vite, SVG Time-Series Risk Charts, Dark Cyber-Security CSS Tokens
+- **Frontend App:** React 18, Vite, SVG Time-Series Visualizer, Vanilla CSS Tokens
 
 ---
 
 ## 🚀 Quickstart Guide
 
 ### Prerequisites
+- Linux OS (Ubuntu/Debian, RHEL, Fedora, Arch) with `systemd`
 - Python 3.10+
 - Node.js (v18+) & npm
 
 ---
 
-### Option A: One-Command Automated Launch (Backend + Frontend)
+### Option A: Complete Local System Launch (One Command)
 
-Run `start.py` to automatically initialize the database, start the FastAPI backend server on port 8000, inject synthetic security event scenarios, and start the Vite frontend dashboard:
+To run the Backend Service, Frontend Dashboard, and Synthetic Data Injector simultaneously:
 
 ```bash
-# Install Python dependencies
+# 1. Install backend dependencies
 pip install -r requirements.txt
 
-# Install Frontend dependencies
+# 2. Install frontend dependencies
 cd frontend && npm install && cd ..
 
-# Launch everything
+# 3. Launch full stack
 python start.py
 ```
-Open **`http://localhost:5173`** in your browser to view the SOC dashboard.
+Open **`http://localhost:5173`** in your browser to access the SOC Dashboard.
 
 ---
 
-### Option B: Manual Component Execution (Backend, Frontend & Agent)
+### Option B: Standalone Linux Endpoint Agent Deployment
 
-#### 1. Backend Server Setup & Run
+Build and deploy the CipherWatch Linux Endpoint Agent as a production-grade binary executable with systemd lifecycle management.
 
-1. Activate your virtual environment and install requirements:
-   ```bash
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. Start the FastAPI backend server:
-   ```bash
-   python main.py
-   # or with uvicorn directly:
-   uvicorn backend.main:app --reload --port 8000
-   ```
-   * The REST API will be live at `http://localhost:8000` (API Docs at `http://localhost:8000/docs`).
-
-#### 2. Frontend Dashboard Setup & Run
-
-1. Navigate to the `frontend/` directory and install packages:
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-   * Open `http://localhost:5173` to access the CipherWatch SOC Analyst Dashboard.
-
----
-
-#### 3. Standalone Enterprise Linux Endpoint Agent Deployment
-
-The CipherWatch Agent is packaged as a **standalone native executable** (built with PyInstaller) that runs as an enterprise Linux endpoint agent without requiring Python, virtual environments, or pip on target endpoints.
-
-##### 3.1 Building the Standalone Executable
-To compile the standalone agent binary:
+#### Step 1: Build the Standalone Package
 
 ```bash
-# Single-command build (Generates dist/cipherwatch-agent)
+# Grants executable permissions and builds deployment bundle in build/
+chmod +x build.sh
 ./build.sh
 ```
 
-##### 3.2 Installing the Endpoint Agent
+This populates the `build/` directory with:
+- `build/cipherwatch-agent` (Native binary executable)
+- `build/install.sh` (Installer script with upgrade detection)
+- `build/cipherwatch-agent.service` (Systemd unit file)
+
+#### Step 2: Install to Linux Endpoint System
 
 ```bash
-# Linux Installation (Systemd service & binary copy to /usr/local/bin)
-cd installer/linux && sudo ./install.sh
+cd build
+sudo ./install.sh
 ```
 
-##### 3.3 Agent CLI Commands
+#### Step 3: Enroll Endpoint Agent
 
 ```bash
-# 1. Interactive Enrollment Setup
-cipherwatch-agent setup --server-url http://localhost:8000 --org-id default_org --enrollment-key demo_key
-
-# 2. Developer Mode (Foreground, verbose console logging, systemd not required)
-cipherwatch-agent dev
-
-# 3. Production Start (Daemon mode with PID locking)
-cipherwatch-agent start
-
-# 4. System Service Control (Production background service)
-sudo systemctl start cipherwatch-agent
-sudo systemctl stop cipherwatch-agent
-
-# 5. Stop Running Agent Gracefully
-cipherwatch-agent stop
-
-# 6. Restart Agent
-cipherwatch-agent restart
-
-# 7. Immediate Synchronization & Health Verification
-cipherwatch-agent sync
-
-# 8. Check Agent & System Status
-cipherwatch-agent status
-
-# 9. View Rotating System Logs
-cipherwatch-agent logs -n 50
-
-# 10. Uninstall Agent (Optional --purge to remove /etc/cipherwatch)
-cipherwatch-agent uninstall --purge
-
-# 11. Print Agent Version & Git Commit
-cipherwatch-agent version
+cipherwatch-agent setup
 ```
+Follow the interactive prompt to enter your **Server URL**, **Organization ID**, and **Enrollment Key**.
 
-##### 3.4 OS Standard Filesystem Locations
-- **Linux Config/Logs Base:** `/etc/cipherwatch/` (or `~/.config/cipherwatch/`)
-  - Config: `/etc/cipherwatch/config.json`
-  - Logs: `/etc/cipherwatch/logs/cipherwatch.log` (10MB rotating log files)
-  - State: `/etc/cipherwatch/state.json`
-  - Lock File: `/etc/cipherwatch/cipherwatch-agent.pid`
+#### Step 4: Start the Agent
+
+- **Development Mode** (Foreground, verbose console logging, Ctrl+C supported):
+  ```bash
+  cipherwatch-agent dev
+  ```
+
+- **Production Mode** (Systemd background daemon):
+  ```bash
+  sudo systemctl start cipherwatch-agent
+  # or via CLI:
+  cipherwatch-agent start
+  ```
 
 ---
 
-## 🧪 Running Synthetic Scenario Simulations
+## 📖 CLI Command Reference
 
-If you don't want to generate physical endpoint events, run the standalone scenario simulator to inject synthetic security sequences directly into the backend REST API:
+The `cipherwatch-agent` binary provides full management capabilities:
+
+| Command | Usage | Description |
+| :--- | :--- | :--- |
+| **`setup`** | `cipherwatch-agent setup` | Interactive wizard to enroll endpoint with CipherWatch backend. |
+| **`dev`** | `cipherwatch-agent dev` | Runs agent in foreground with verbose console logging (dev only). |
+| **`start`** | `cipherwatch-agent start` | Starts installed systemd background service. |
+| **`stop`** | `cipherwatch-agent stop` | Stops running systemd background service. |
+| **`restart`** | `cipherwatch-agent restart` | Restarts installed systemd service (`stop` -> `start`). |
+| **`sync`** | `cipherwatch-agent sync` | Forces immediate heartbeat and verifies backend connection. |
+| **`status`** | `cipherwatch-agent status` | Displays enrollment, service, PID, heartbeat, and path status. |
+| **`logs`** | `cipherwatch-agent logs -n 50` | Displays the last N lines of `/etc/cipherwatch/logs/cipherwatch.log`. |
+| **`uninstall`** | `cipherwatch-agent uninstall [--purge]` | Removes service and binary. Optional `--purge` deletes configuration. |
+| **`version`** | `cipherwatch-agent version` | Displays agent version, build date, and git commit hash. |
+
+---
+
+## 📂 System Paths & Storage Layout
+
+On Linux endpoints, CipherWatch adheres strictly to OS filesystem standards:
+
+| Path | Purpose | Access Permissions |
+| :--- | :--- | :--- |
+| **/etc/cipherwatch/config.json** | Endpoint IDs, auth tokens, server URL | `600` (Root / Owner) |
+| **/etc/cipherwatch/logs/cipherwatch.log** | Rotating log file (10MB max, 5 backups) | `600` |
+| **/etc/cipherwatch/state.json** | Last heartbeat & event telemetry state | `600` |
+| **/etc/cipherwatch/cipherwatch-agent.pid** | Process lock file (prevents duplicate instances)| `600` |
+| **/usr/local/bin/cipherwatch-agent** | Executable standalone binary | `755` |
+| **/etc/systemd/system/cipherwatch-agent.service** | Systemd unit configuration file | `644` |
+
+*Note: Unprivileged executions automatically fall back to `~/.config/cipherwatch/`.*
+
+---
+
+## 🧪 Synthetic Attack Simulations
+
+To simulate insider threat scenarios without generating actual physical events:
 
 ```bash
-# Scenario A: Routine Developer Day (Low Risk < 20%)
+# Scenario 1: Routine Developer Workflow (Normal Baseline / Low Risk < 20%)
 python -m simulator.main --scenario normal_day
 
-# Scenario B: High-Risk Bulk Exfiltration Burst (Critical Risk > 85%)
+# Scenario 2: Exfiltration Burst (Bulk archive creation + USB transfer > 85%)
 python -m simulator.main --scenario exfil_burst
 
-# Scenario C: Low-and-Slow Exfiltration Sequence (Elevated Risk)
+# Scenario 3: Low-and-Slow Exfiltration (Off-hours staging + cloud upload)
 python -m simulator.main --scenario slow_drip
 ```
 
 ---
 
-## 📋 Test Suite Execution
+## 🔒 Zero-Privacy Invasion Guarantee
 
-Run all automated unit and end-to-end integration tests using pytest:
+CipherWatch operates under strict enterprise privacy boundaries:
+
+| Data Type | Status | Collected Metadata |
+| :--- | :---: | :--- |
+| **File Contents & Text** | 🚫 **NEVER** | None |
+| **Screenshots & Video** | 🚫 **NEVER** | None |
+| **Keystrokes & Passwords**| 🚫 **NEVER** | None |
+| **Audio & Video Streams** | 🚫 **NEVER** | None |
+| **Filesystem Activity** | ✅ **METADATA** | Timestamps, file size (bytes), file extensions, event type |
+| **USB Activity** | ✅ **METADATA** | Vendor ID, Product ID, Mount point |
+| **Process Tree** | ✅ **METADATA** | Process name, PID, SHA-256 binary hash |
+| **Network Endpoints** | ✅ **METADATA** | Remote IP, destination port, domain name |
+
+---
+
+## 🧪 Automated Testing
+
+Execute unit and integration test suites:
 
 ```bash
 pytest
-# or using uv:
+# or via uv:
 uv run pytest
 ```
 
 ---
 
-## 🛡️ Zero-Privacy Invasion Guarantee
+## 📄 License
 
-CipherWatch operates strictly under enterprise privacy boundaries:
-- 🚫 **NEVER COLLECTED:** File contents, text body, screen renders/pixels, keystrokes, audio, or email bodies.
-- ✅ **METADATA ONLY:** Timestamps, file size (bytes), file extensions, process names/hashes, IP/domains, and USB vendor IDs.
-
-
+Distributed under the MIT License. See `LICENSE` for details.
