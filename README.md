@@ -10,6 +10,7 @@ CipherWatch detects insider threat data exfiltration (USB transfers, unauthorize
 
 1. **Endpoint Agent & Scenario Simulator (Metadata-Only):**
    - Monitors filesystem events, USB insertions, process launches, and network connections (`watchdog`, `psutil`).
+   - Includes an agent enrollment flow (`--setup`) with token-based authentication and heartbeats.
    - Includes a synthetic scenario injector CLI (`simulator/main.py`) for reproducible testing.
 2. **Session Correlator & Timeline Visualizer:**
    - Automatically groups raw system events into logical user operational sessions based on configurable idle windows.
@@ -28,7 +29,7 @@ CipherWatch detects insider threat data exfiltration (USB transfers, unauthorize
 
 ## 🛠️ Technical Stack
 
-- **Package Manager:** `uv`
+- **Package Manager:** `uv` / `pip`
 - **Backend Service:** Python 3.10+, FastAPI, SQLAlchemy (SQLite ORM), Pydantic v2
 - **Analytics & ML:** `scikit-learn` (Isolation Forest, Random Forest Intent Classifier), `NetworkX`
 - **LLM Integration:** Anthropic API (Claude 3.5 Sonnet / Haiku)
@@ -36,46 +37,109 @@ CipherWatch detects insider threat data exfiltration (USB transfers, unauthorize
 
 ---
 
-## 🚀 Quickstart & Demo Runner
+## 🚀 Quickstart Guide
 
 ### Prerequisites
 - Python 3.10+
-- Node.js & npm
-
-### 1. Install Dependencies
-```bash
-# Python dependencies
-pip install -r requirements.txt
-
-# Frontend dependencies
-cd frontend && npm install && cd ..
-```
-
-### 2. Run Entire Platform (Single Command)
-Run `start.py` to automatically initialize the database, start the FastAPI backend server on port 8000, inject synthetic security event scenarios, and start the Vite frontend dashboard:
-
-```bash
-python start.py
-```
-
-
-Open `http://localhost:5173` in your browser to view live alerts, timeline event visualizers, risk breakdown bars, AI incident summaries, and analyst controls.
+- Node.js (v18+) & npm
 
 ---
 
-## 🧪 Running Scenario Simulations
+### Option A: One-Command Automated Launch (Backend + Frontend)
 
-The scenario simulator supports three synthetic security event sequences:
+Run `start.py` to automatically initialize the database, start the FastAPI backend server on port 8000, inject synthetic security event scenarios, and start the Vite frontend dashboard:
+
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Frontend dependencies
+cd frontend && npm install && cd ..
+
+# Launch everything
+python start.py
+```
+Open **`http://localhost:5173`** in your browser to view the SOC dashboard.
+
+---
+
+### Option B: Manual Component Execution (Backend, Frontend & Agent)
+
+#### 1. Backend Server Setup & Run
+
+1. Activate your virtual environment and install requirements:
+   ```bash
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. Start the FastAPI backend server:
+   ```bash
+   python main.py
+   # or with uvicorn directly:
+   uvicorn backend.main:app --reload --port 8000
+   ```
+   * The REST API will be live at `http://localhost:8000` (API Docs at `http://localhost:8000/docs`).
+
+#### 2. Frontend Dashboard Setup & Run
+
+1. Navigate to the `frontend/` directory and install packages:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   * Open `http://localhost:5173` to access the CipherWatch SOC Analyst Dashboard.
+
+---
+
+#### 3. Endpoint Agent Setup & Execution
+
+The Endpoint Agent runs on client machines to monitor local system metadata events (filesystem changes in `./monitored_folder`, process launches, USB mounts, network connections) and stream them to the backend.
+
+##### Step 3.1: Enroll / Register the Agent
+If running in an enterprise workspace, enroll the agent with your organization's backend endpoint:
+
+```bash
+# Interactive setup wizard:
+python -m agent.main --setup --backend-url http://localhost:8000
+
+# Or via non-interactive CLI flags:
+python -m agent.main --setup \
+  --backend-url http://localhost:8000 \
+  --org-id default_org \
+  --enrollment-key demo_key
+```
+This generates `agent_config.json` containing the assigned `agent_id` and authentication token.
+
+##### Step 3.2: Run the Endpoint Agent
+Once enrolled, start the monitoring agent daemon:
+
+```bash
+python -m agent.main --backend-url http://localhost:8000 --user-id demo_user
+```
+The agent will:
+- Establish a background 30s heartbeat with the backend.
+- Monitor events in `./monitored_folder` (creates directory automatically).
+- Stream metadata payloads asynchronously to `POST /api/events`.
+
+---
+
+## 🧪 Running Synthetic Scenario Simulations
+
+If you don't want to generate physical endpoint events, run the standalone scenario simulator to inject synthetic security sequences directly into the backend REST API:
 
 ```bash
 # Scenario A: Routine Developer Day (Low Risk < 20%)
-uv run python -m simulator.main --scenario normal_day
+python -m simulator.main --scenario normal_day
 
 # Scenario B: High-Risk Bulk Exfiltration Burst (Critical Risk > 85%)
-uv run python -m simulator.main --scenario exfil_burst
+python -m simulator.main --scenario exfil_burst
 
 # Scenario C: Low-and-Slow Exfiltration Sequence (Elevated Risk)
-uv run python -m simulator.main --scenario slow_drip
+python -m simulator.main --scenario slow_drip
 ```
 
 ---
@@ -85,6 +149,8 @@ uv run python -m simulator.main --scenario slow_drip
 Run all automated unit and end-to-end integration tests using pytest:
 
 ```bash
+pytest
+# or using uv:
 uv run pytest
 ```
 
@@ -95,3 +161,4 @@ uv run pytest
 CipherWatch operates strictly under enterprise privacy boundaries:
 - 🚫 **NEVER COLLECTED:** File contents, text body, screen renders/pixels, keystrokes, audio, or email bodies.
 - ✅ **METADATA ONLY:** Timestamps, file size (bytes), file extensions, process names/hashes, IP/domains, and USB vendor IDs.
+
