@@ -90,7 +90,7 @@ export default function AdminDashboard({ orgId }) {
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 10000) // Poll every 10s for real-time-ish telemetry updates
+    const interval = setInterval(fetchData, 10000) // Poll every 10s for real-time telemetry updates
     return () => clearInterval(interval)
   }, [search, osFilter, statusFilter, threatFilter, orgId])
 
@@ -118,38 +118,38 @@ export default function AdminDashboard({ orgId }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Fleet Top Stats Bar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <span className="caption" style={{ color: 'var(--text-muted)' }}>Enrolled Systems</span>
-          <div className="display-sm" style={{ color: 'var(--text-primary)', marginTop: '4px' }}>
+        <div className="alert-feed-card" style={{ padding: '20px' }}>
+          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 500 }}>Enrolled Systems</span>
+          <div className="number-display" style={{ color: 'var(--colors-primary)', marginTop: '4px' }}>
             {stats?.summary?.total_systems ?? 0}
           </div>
-          <div className="caption" style={{ color: 'var(--accent-green)', marginTop: '6px' }}>
+          <div className="body-sm tabular-nums" style={{ color: 'var(--colors-risk-contained)', marginTop: '6px' }}>
             ● {stats?.summary?.online_systems ?? 0} Online | {stats?.summary?.offline_systems ?? 0} Offline
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <span className="caption" style={{ color: 'var(--text-muted)' }}>Active Unacknowledged Threats</span>
-          <div className="display-sm" style={{ color: (stats?.summary?.critical_alerts ?? 0) > 0 ? 'var(--accent-red)' : 'var(--accent-amber)', marginTop: '4px' }}>
+        <div className="alert-feed-card" style={{ padding: '20px' }}>
+          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 500 }}>Unacknowledged Threats</span>
+          <div className="number-display" style={{ color: (stats?.summary?.critical_alerts ?? 0) > 0 ? 'var(--colors-risk-escalating)' : 'var(--colors-primary)', marginTop: '4px' }}>
             {stats?.summary?.unacknowledged_alerts ?? 0}
           </div>
-          <div className="caption" style={{ color: 'var(--text-secondary)', marginTop: '6px' }}>
+          <div className="body-sm tabular-nums" style={{ color: 'var(--colors-muted-strong)', marginTop: '6px' }}>
             {stats?.summary?.critical_alerts ?? 0} Critical | {stats?.summary?.warning_alerts ?? 0} Warning
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <span className="caption" style={{ color: 'var(--text-muted)' }}>Fleet Avg CPU / Memory</span>
-          <div className="display-sm" style={{ color: 'var(--primary-cta)', marginTop: '4px' }}>
+        <div className="alert-feed-card" style={{ padding: '20px' }}>
+          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 500 }}>Fleet Avg CPU / Memory</span>
+          <div className="number-display" style={{ color: 'var(--colors-primary)', marginTop: '4px' }}>
             {stats?.summary?.avg_fleet_cpu ?? 0}% / {stats?.summary?.avg_fleet_mem ?? 0}%
           </div>
-          <div className="caption" style={{ color: 'var(--text-secondary)', marginTop: '6px' }}>
+          <div className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '6px' }}>
             Real-time aggregate across hosts
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <span className="caption" style={{ color: 'var(--text-muted)' }}>Demo / Testing Controls</span>
+        <div className="alert-feed-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 500 }}>Telemetry Simulator</span>
           <button
             onClick={handleSeedMockData}
             disabled={seeding}
@@ -162,14 +162,14 @@ export default function AdminDashboard({ orgId }) {
       </div>
 
       {/* Agent Enrollment Card */}
-      <div className="feature-card" style={{ padding: '24px' }}>
+      <div className="alert-feed-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <h2 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+            <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
               🔑 Agent Enrollment & Setup Command
             </h2>
-            <p className="caption" style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Enroll new physical host machines/PCs into this organization fleet using the secure registration key.
+            <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '4px' }}>
+              Enroll physical host machines/PCs into this organization fleet using the secure registration key.
             </p>
           </div>
           <button
@@ -183,19 +183,19 @@ export default function AdminDashboard({ orgId }) {
         </div>
 
         {loadingCreds ? (
-          <div className="body-sm" style={{ color: 'var(--text-muted)' }}>Loading credentials...</div>
+          <div className="body-sm" style={{ color: 'var(--colors-muted)' }}>Loading credentials...</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="caption" style={{ color: 'var(--text-muted)' }}>Organization ID (organization_id)</span>
+                <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 600 }}>ORGANIZATION ID (organization_id)</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     readOnly
                     value={credentials?.organization_id || orgId || ''}
                     className="input-text"
-                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'rgba(255,255,255,0.02)' }}
+                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'var(--colors-canvas-dark)' }}
                   />
                   <button
                     onClick={() => handleCopy(credentials?.organization_id || orgId, 'orgId')}
@@ -208,14 +208,14 @@ export default function AdminDashboard({ orgId }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="caption" style={{ color: 'var(--text-muted)' }}>Enrollment Key (enrollment_key)</span>
+                <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 600 }}>ENROLLMENT KEY (enrollment_key)</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type={showKey ? 'text' : 'password'}
                     readOnly
                     value={credentials?.enrollment_key ?? credentials?.registration_key ?? ''}
                     className="input-text"
-                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'rgba(255,255,255,0.02)' }}
+                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '13px', background: 'var(--colors-canvas-dark)' }}
                   />
                   <button
                     onClick={() => setShowKey(!showKey)}
@@ -236,17 +236,17 @@ export default function AdminDashboard({ orgId }) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-              <span className="caption" style={{ color: 'var(--text-muted)' }}>Setup command for physical machines / endpoints:</span>
+              <span className="body-sm" style={{ color: 'var(--colors-muted-strong)', fontWeight: 600 }}>Setup command for physical host machines:</span>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <pre style={{
                   flex: 1,
-                  background: 'var(--surface-soft)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--colors-canvas-dark)',
+                  border: '1px solid var(--colors-hairline-on-dark)',
+                  borderRadius: 'var(--rounded-md)',
                   padding: '12px 16px',
                   margin: 0,
                   fontSize: '12px',
-                  color: 'var(--primary-cyan)',
+                  color: 'var(--colors-primary)',
                   overflowX: 'auto',
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-all'
@@ -269,9 +269,9 @@ export default function AdminDashboard({ orgId }) {
       {/* Main Grid: Active Threats Panel + Fleet Systems View */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(500px, 1.8fr)', gap: '24px' }}>
         {/* Left Panel: Active Threats Feed */}
-        <div className="feature-card" style={{ padding: '24px' }}>
+        <div className="alert-feed-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+            <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
               🚨 Active Threats Panel
             </h2>
             <span className={`badge ${(threats.length > 0) ? 'badge-danger' : 'badge-success'}`}>
@@ -280,7 +280,7 @@ export default function AdminDashboard({ orgId }) {
           </div>
 
           {threats.length === 0 ? (
-            <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
+            <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0', textAlign: 'center' }}>
               No active unacknowledged threats detected. Fleet secure.
             </div>
           ) : (
@@ -290,9 +290,9 @@ export default function AdminDashboard({ orgId }) {
                   key={t.id}
                   style={{
                     padding: '16px',
-                    borderRadius: 'var(--radius-md)',
-                    background: t.severity.toLowerCase() === 'critical' ? 'rgba(248, 113, 113, 0.08)' : 'var(--surface-soft)',
-                    border: `1px solid ${t.severity.toLowerCase() === 'critical' ? 'rgba(248, 113, 113, 0.25)' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--rounded-md)',
+                    background: t.severity.toLowerCase() === 'critical' ? 'rgba(246, 70, 93, 0.08)' : 'var(--colors-canvas-dark)',
+                    border: `1px solid ${t.severity.toLowerCase() === 'critical' ? 'rgba(246, 70, 93, 0.3)' : 'var(--colors-hairline-on-dark)'}`,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
@@ -303,7 +303,7 @@ export default function AdminDashboard({ orgId }) {
                       <span className={`badge ${t.severity.toLowerCase() === 'critical' ? 'badge-danger' : 'badge-warning'}`}>
                         {t.severity.toUpperCase()}
                       </span>
-                      <code className="caption" style={{ color: 'var(--primary-cyan)' }}>{t.rule_id}</code>
+                      <code className="body-sm" style={{ color: 'var(--colors-primary)' }}>{t.rule_id}</code>
                     </div>
                     <button
                       onClick={() => handleAcknowledgeThreat(t.id)}
@@ -314,13 +314,13 @@ export default function AdminDashboard({ orgId }) {
                     </button>
                   </div>
 
-                  <p className="body-sm" style={{ color: 'var(--text-primary)', fontWeight: '500', margin: 0 }}>
+                  <p className="body-sm" style={{ color: 'var(--colors-on-dark)', fontWeight: '500', margin: 0 }}>
                     {t.message}
                   </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--colors-muted-strong)' }}>
                     <span>Host: <strong>{t.hostname}</strong> ({t.ip})</span>
-                    <span>{new Date(t.timestamp).toLocaleTimeString()}</span>
+                    <span className="tabular-nums">{new Date(t.timestamp).toLocaleTimeString()}</span>
                   </div>
                 </div>
               ))}
@@ -329,14 +329,14 @@ export default function AdminDashboard({ orgId }) {
         </div>
 
         {/* Right Panel: Enrolled Systems Grid / List */}
-        <div className="feature-card" style={{ padding: '24px' }}>
+        <div className="alert-feed-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h2 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+              <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
                 💻 Enrolled Systems Fleet ({systems.length})
               </h2>
-              <p className="caption" style={{ color: 'var(--text-secondary)' }}>
-                Click any machine to inspect telemetry, process trees, and filesystem watchdog activity.
+              <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '2px' }}>
+                Click any machine to inspect process lineage and watchdog activity.
               </p>
             </div>
 
@@ -375,9 +375,9 @@ export default function AdminDashboard({ orgId }) {
           </div>
 
           {loading ? (
-            <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0' }}>Loading enrolled systems...</div>
+            <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0' }}>Loading enrolled systems...</div>
           ) : systems.length === 0 ? (
-            <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
+            <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0', textAlign: 'center' }}>
               No enrolled systems found. Click "Seed Demo Telemetry Data" above to generate demo systems.
             </div>
           ) : (
@@ -388,9 +388,9 @@ export default function AdminDashboard({ orgId }) {
                   onClick={() => setSelectedAgentId(sys.id)}
                   style={{
                     padding: '16px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--surface-soft)',
-                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--rounded-md)',
+                    background: 'var(--colors-canvas-dark)',
+                    border: '1px solid var(--colors-hairline-on-dark)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     display: 'flex',
@@ -398,16 +398,16 @@ export default function AdminDashboard({ orgId }) {
                     alignItems: 'center',
                     gap: '16px',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--primary-cta)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--colors-primary)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)')}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div
                       style={{
                         width: '36px',
                         height: '36px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--surface-strong)',
+                        borderRadius: 'var(--rounded-md)',
+                        background: 'var(--colors-surface-elevated-dark)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -418,7 +418,7 @@ export default function AdminDashboard({ orgId }) {
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <strong className="body-md" style={{ color: 'var(--text-primary)' }}>{sys.hostname}</strong>
+                        <strong className="body-md" style={{ color: 'var(--colors-on-dark)' }}>{sys.hostname}</strong>
                         <span className={`badge ${sys.status === 'online' ? 'badge-success' : 'badge-danger'}`}>
                           {sys.status.toUpperCase()}
                         </span>
@@ -426,7 +426,7 @@ export default function AdminDashboard({ orgId }) {
                           {sys.threat_level.toUpperCase()}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '4px', fontSize: '12px', color: 'var(--colors-muted-strong)' }}>
                         <span>IP: {sys.ip}</span>
                         <span>OS: {sys.os}</span>
                         <span>v{sys.agent_version}</span>
@@ -436,12 +436,12 @@ export default function AdminDashboard({ orgId }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div className="caption" style={{ color: 'var(--text-muted)' }}>CPU / Mem</div>
-                      <div className="body-sm" style={{ color: 'var(--text-primary)', fontWeight: '600', marginTop: '2px' }}>
+                      <div className="body-sm" style={{ color: 'var(--colors-muted)' }}>CPU / Mem</div>
+                      <div className="body-sm tabular-nums" style={{ color: 'var(--colors-on-dark)', fontWeight: '600', marginTop: '2px' }}>
                         {sys.latest_metrics.cpu_percent.toFixed(1)}% / {sys.latest_metrics.mem_percent.toFixed(1)}%
                       </div>
                     </div>
-                    <span style={{ color: 'var(--primary-blue)', fontSize: '13px', fontWeight: '500' }}>
+                    <span style={{ color: 'var(--colors-primary)', fontSize: '13px', fontWeight: '600' }}>
                       Inspect →
                     </span>
                   </div>

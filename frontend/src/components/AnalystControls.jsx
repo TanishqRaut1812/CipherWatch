@@ -25,9 +25,9 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         setStatus(feedbackType);
         setSubmitting(false);
         const msg = feedbackType === 'FALSE_POSITIVE' 
-          ? 'Marked False Positive. Baseline auto-adjusted!'
+          ? 'Marked False Positive. Baseline auto-dampened!'
           : feedbackType === 'CONFIRMED_THREAT'
-          ? 'Threat Confirmed. Incident escalated.'
+          ? 'Threat Confirmed. Incident escalated to Incident Response team.'
           : 'Incident Resolved.';
         
         setToastMessage(msg);
@@ -36,7 +36,6 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         }
       })
       .catch(() => {
-        // Local demo state fallback
         setStatus(feedbackType);
         setSubmitting(false);
         setToastMessage(`Feedback recorded (${feedbackType}). Baseline auto-dampened.`);
@@ -47,9 +46,9 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
   };
 
   return (
-    <div className="feature-card" style={{ padding: '24px' }}>
+    <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+        <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
           🛡️ SOC Analyst Feedback & Baseline Control
         </h3>
         <span className={`badge ${status === 'CONFIRMED_THREAT' || status === 'CONFIRMED' ? 'badge-danger' : status === 'FALSE_POSITIVE' || status === 'RESOLVED' ? 'badge-success' : 'badge-warning'}`}>
@@ -57,7 +56,7 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         </span>
       </div>
 
-      <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+      <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginBottom: '16px' }}>
         Submitting feedback automatically updates the user's risk tolerance profile to suppress repeat false alarms.
       </p>
 
@@ -105,11 +104,11 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
           style={{
             marginTop: '16px',
             padding: '10px 14px',
-            background: 'rgba(59, 130, 246, 0.08)',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            borderRadius: 'var(--radius-md)',
+            background: 'var(--colors-canvas-dark)',
+            border: '1px solid var(--colors-hairline-on-dark)',
+            borderRadius: 'var(--rounded-md)',
             fontSize: '12px',
-            color: 'var(--primary-blue)',
+            color: 'var(--colors-primary)',
             fontFamily: 'var(--font-mono)',
           }}
         >

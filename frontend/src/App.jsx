@@ -6,13 +6,23 @@ import AnalystControls from './components/AnalystControls'
 import PrivacyBanner from './components/PrivacyBanner'
 import RiskChart from './components/RiskChart'
 import AdminDashboard from './components/AdminDashboard'
+import HeroBand from './components/HeroBand'
+import SessionGraphCard from './components/SessionGraphCard'
+import ZeroContentBand from './components/ZeroContentBand'
+import FaqSection from './components/FaqSection'
+import CtaBandDark from './components/CtaBandDark'
+import FooterLight from './components/FooterLight'
+
+import LoginPage from './components/LoginPage'
 
 export default function App() {
+
   const [activeView, setActiveView] = useState('admin') // 'admin' | 'soc'
   const [alerts, setAlerts] = useState([])
   const [selectedSession, setSelectedSession] = useState(null)
   const [loading, setLoading] = useState(false)
   const [isConnected, setIsConnected] = useState(true)
+  const [alertTabFilter, setAlertTabFilter] = useState('ALL') // 'ALL' | 'CRITICAL' | 'WARNING'
 
   // Auth & Multi-Tenancy States
   const [currentUser, setCurrentUser] = useState(null)
@@ -41,7 +51,6 @@ export default function App() {
       .then((orgs) => {
         setOrganizations(orgs || [])
         if (orgs && orgs.length > 0) {
-          // If only one, select it automatically
           if (orgs.length === 1) {
             setSelectedOrg(orgs[0])
           }
@@ -80,7 +89,7 @@ export default function App() {
     fetchAlerts()
     setLoading(false)
 
-    const interval = setInterval(fetchAlerts, 10000) // Poll for new threat telemetry every 10s
+    const interval = setInterval(fetchAlerts, 10000)
     return () => clearInterval(interval)
   }, [currentUser, selectedOrg])
 
@@ -215,6 +224,12 @@ export default function App() {
 
   const activeAlert = alerts.length > 0 ? (alerts.find((a) => a.session_id === selectedSession?.id) || alerts[0]) : null
 
+  const filteredAlerts = alerts.filter((a) => {
+    if (alertTabFilter === 'CRITICAL') return a.severity === 'CRITICAL' || a.severity === 'HIGH'
+    if (alertTabFilter === 'WARNING') return a.severity === 'WARNING' || a.severity === 'MEDIUM'
+    return true
+  })
+
   // 1. Loading Authentication State Screen
   if (authLoading && !currentUser) {
     return (
@@ -224,15 +239,15 @@ export default function App() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--surface-canvas)',
-        color: 'var(--text-secondary)'
+        background: 'var(--colors-canvas-dark)',
+        color: 'var(--colors-muted-strong)'
       }}>
         <div style={{
           width: '40px',
           height: '40px',
           borderRadius: '50%',
-          border: '3px solid var(--border-subtle)',
-          borderTopColor: 'var(--primary-cta)',
+          border: '3px solid var(--colors-hairline-on-dark)',
+          borderTopColor: 'var(--colors-primary)',
           animation: 'spin 1s linear infinite',
           marginBottom: '16px'
         }} />
@@ -246,197 +261,65 @@ export default function App() {
     )
   }
 
-  // 2. Unauthenticated state: Login/Signup portal
+  // 2. Unauthenticated state: Split-Screen Login/Signup portal
   if (!currentUser) {
     return (
-      <>
-        <PrivacyBanner />
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--surface-canvas)',
-          padding: '24px'
-        }}>
-          <div className="glass-panel-xl" style={{
-            width: '100%',
-            maxWidth: '440px',
-            padding: '40px',
-            boxShadow: 'var(--shadow-elevated)',
-            border: '1px solid var(--border-active)'
-          }}>
-            {/* Logo */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, var(--primary-cta) 0%, var(--primary-cyan) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '22px',
-                color: '#ffffff',
-                boxShadow: 'var(--shadow-subtle)'
-              }}>
-                CW
-              </div>
-            </div>
-
-            <h2 className="display-sm" style={{ textAlign: 'center', color: 'var(--text-primary)', marginBottom: '8px' }}>
-              {authMode === 'login' ? 'CipherWatch Access' : 'Create Workspace'}
-            </h2>
-            <p className="body-sm" style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '32px' }}>
-              {authMode === 'login' 
-                ? 'Enter your corporate credentials to monitor organization fleet telemetry.' 
-                : 'Initialize a new tenant workspace and security administrator account.'}
-            </p>
-
-            {authError && (
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(248, 113, 113, 0.08)',
-                border: '1px solid rgba(248, 113, 113, 0.25)',
-                color: 'var(--accent-red)',
-                fontSize: '13px',
-                marginBottom: '24px',
-                lineHeight: '1.5'
-              }}>
-                ⚠️ {authError}
-              </div>
-            )}
-
-            <form onSubmit={authMode === 'login' ? handleLogin : handleSignup}>
-              {authMode === 'signup' && (
-                <div style={{ marginBottom: '20px' }}>
-                  <label className="caption" style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                    ADMIN USERNAME
-                  </label>
-                  <input
-                    type="text"
-                    className="input-text"
-                    placeholder="e.g. admin_secops"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-
-              <div style={{ marginBottom: '20px' }}>
-                <label className="caption" style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                  EMAIL ADDRESS
-                </label>
-                <input
-                  type="email"
-                  className="input-text"
-                  placeholder="e.g. analyst@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={{ marginBottom: authMode === 'signup' ? '20px' : '28px' }}>
-                <label className="caption" style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                  SECURITY PASSWORD
-                </label>
-                <input
-                  type="password"
-                  className="input-text"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              {authMode === 'signup' && (
-                <div style={{ marginBottom: '28px' }}>
-                  <label className="caption" style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
-                    WORKSPACE ORGANIZATION NAME
-                  </label>
-                  <input
-                    type="text"
-                    className="input-text"
-                    placeholder="e.g. Acme Cyber Security"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-
-              <button type="submit" className="btn-primary" style={{ width: '100%', height: '42px', fontSize: '13px' }}>
-                {authMode === 'login' ? 'Authenticate Portal' : 'Register Workspace'}
-              </button>
-            </form>
-
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <button
-                onClick={() => {
-                  setAuthMode(authMode === 'login' ? 'signup' : 'login');
-                  setAuthError('');
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--primary-blue)',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                {authMode === 'login' ? 'Setup new organization workspace →' : 'Log in with existing credentials →'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </>
+      <LoginPage
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        username={username}
+        setUsername={setUsername}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        orgName={orgName}
+        setOrgName={setOrgName}
+        authError={authError}
+        authLoading={authLoading}
+        handleLogin={handleLogin}
+        handleSignup={handleSignup}
+      />
     )
   }
+
 
   // 3. Authenticated but workspace not selected: Org Selector
   if (!selectedOrg) {
     return (
-      <>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--colors-canvas-dark)' }}>
         <PrivacyBanner />
         <div style={{
-          minHeight: '100vh',
+          flex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--surface-canvas)',
-          padding: '24px'
+          padding: '40px 24px'
         }}>
-          <div className="glass-panel-xl" style={{
+          <div className="alert-feed-card" style={{
             width: '100%',
             maxWidth: '520px',
             padding: '40px',
-            boxShadow: 'var(--shadow-elevated)',
-            border: '1px solid var(--border-active)'
+            backgroundColor: 'var(--colors-surface-card-dark)',
+            border: '1px solid var(--colors-hairline-on-dark)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h2 className="display-sm" style={{ color: 'var(--text-primary)', margin: 0 }}>Select Workspace</h2>
+              <h2 className="display-sm" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>Select Workspace</h2>
               <span className="badge badge-info">{currentUser.username}</span>
             </div>
-            <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
+            <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginBottom: '32px' }}>
               Please select a workspace organization to begin telemetry ingestion and fleet monitoring.
             </p>
 
             {authError && (
               <div style={{
                 padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(248, 113, 113, 0.08)',
-                border: '1px solid rgba(248, 113, 113, 0.25)',
-                color: 'var(--accent-red)',
+                borderRadius: 'var(--rounded-md)',
+                background: 'rgba(246, 70, 93, 0.1)',
+                border: '1px solid rgba(246, 70, 93, 0.3)',
+                color: 'var(--colors-risk-escalating)',
                 fontSize: '13px',
                 marginBottom: '24px',
-                lineHeight: '1.5'
               }}>
                 ⚠️ {authError}
               </div>
@@ -447,9 +330,11 @@ export default function App() {
                 <div
                   key={org.id}
                   onClick={() => setSelectedOrg(org)}
-                  className="feature-card"
                   style={{
                     padding: '18px 24px',
+                    borderRadius: 'var(--rounded-md)',
+                    backgroundColor: 'var(--colors-canvas-dark)',
+                    border: '1px solid var(--colors-hairline-on-dark)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     display: 'flex',
@@ -457,21 +342,19 @@ export default function App() {
                     alignItems: 'center'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--primary-cta)';
-                    e.currentTarget.style.background = 'var(--surface-card-hover)';
+                    e.currentTarget.style.borderColor = 'var(--colors-primary)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                    e.currentTarget.style.background = 'var(--surface-card)';
+                    e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)';
                   }}
                 >
                   <div>
-                    <h3 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>{org.name}</h3>
-                    <span className="caption" style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'inline-block' }}>
-                      Authorization level: <span style={{ color: 'var(--primary-cyan)', fontWeight: '600' }}>{org.role.toUpperCase()}</span>
+                    <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>{org.name}</h3>
+                    <span className="body-sm" style={{ color: 'var(--colors-muted)', marginTop: '4px', display: 'inline-block' }}>
+                      Authorization level: <strong style={{ color: 'var(--colors-primary)' }}>{org.role.toUpperCase()}</strong>
                     </span>
                   </div>
-                  <span style={{ color: 'var(--primary-blue)', fontSize: '13px', fontWeight: '600' }}>
+                  <span style={{ color: 'var(--colors-primary)', fontSize: '13px', fontWeight: '600' }}>
                     Enter →
                   </span>
                 </div>
@@ -479,10 +362,10 @@ export default function App() {
             </div>
 
             <div style={{
-              borderTop: '1px solid var(--border-subtle)',
+              borderTop: '1px solid var(--colors-hairline-on-dark)',
               paddingTop: '24px'
             }}>
-              <h4 className="title-sm" style={{ color: 'var(--text-primary)', marginBottom: '12px' }}>Initialize Additional Workspace</h4>
+              <h4 className="title-sm" style={{ color: 'var(--colors-on-dark)', marginBottom: '12px' }}>Initialize Additional Workspace</h4>
               <form onSubmit={handleCreateOrg} style={{ display: 'flex', gap: '12px' }}>
                 <input
                   type="text"
@@ -509,206 +392,229 @@ export default function App() {
             </div>
           </div>
         </div>
-      </>
+        <FooterLight />
+      </div>
     )
   }
 
-  // 4. Authenticated & Selected workspace: Render Dashboard
+  // 4. Authenticated & Selected workspace: Full Dashboard Layout
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-canvas)' }}>
-      <PrivacyBanner />
-      <div className="container" style={{ paddingTop: '24px' }}>
-        {/* Dashboard Header */}
-        <header
-          className="glass-panel-xl"
-          style={{
-            padding: '24px 32px',
-            marginBottom: '24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, var(--primary-cta) 0%, var(--primary-cyan) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '600',
-                fontSize: '18px',
-                color: '#ffffff',
-                boxShadow: 'var(--shadow-subtle)',
-              }}
-            >
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--colors-canvas-dark)', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Bar Navigation (top-nav-dark) */}
+      <header className="top-nav-dark">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              backgroundColor: 'var(--colors-surface-card-dark)',
+              border: '1px solid var(--colors-hairline-on-dark)',
+              borderRadius: 'var(--rounded-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: '700',
+              fontSize: '15px',
+              color: 'var(--colors-primary)'
+            }}>
               CW
             </div>
-            <div>
-              <h1 className="title-lg" style={{ color: 'var(--text-primary)', margin: 0 }}>
-                CipherWatch Security Console
-              </h1>
-              <p className="body-sm" style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Active Workspace: <strong style={{ color: 'var(--text-primary)' }}>{selectedOrg.name}</strong> • Operator: {currentUser.username}
-              </p>
-            </div>
+            <span style={{ fontWeight: '700', fontSize: '16px', letterSpacing: '-0.3px', color: 'var(--colors-on-dark)' }}>
+              CIPHER<span style={{ color: 'var(--colors-primary)' }}>WATCH</span>
+            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* View Switcher Tabs */}
-            <div style={{ display: 'flex', background: 'var(--surface-soft)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <button
-                onClick={() => setActiveView('admin')}
-                style={{
-                  background: activeView === 'admin' ? 'var(--primary-cta)' : 'transparent',
-                  color: activeView === 'admin' ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '6px 14px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                💻 Agent Telemetry & Fleet
-              </button>
-              <button
-                onClick={() => setActiveView('soc')}
-                style={{
-                  background: activeView === 'soc' ? 'var(--primary-cta)' : 'transparent',
-                  color: activeView === 'soc' ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '6px 14px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                🛡️ SOC Insider Threat
-              </button>
-            </div>
+          <nav style={{ display: 'flex', gap: '16px', marginLeft: '16px' }}>
+            <button
+              onClick={() => setActiveView('admin')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeView === 'admin' ? 'var(--colors-primary)' : 'var(--colors-muted-strong)',
+                fontWeight: activeView === 'admin' ? '600' : '500',
+                fontSize: '14px',
+                cursor: 'pointer',
+                borderBottom: activeView === 'admin' ? '2px solid var(--colors-primary)' : '2px solid transparent',
+                padding: '18px 4px 16px'
+              }}
+            >
+              💻 Live Telemetry & Fleet
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => setSelectedOrg(null)}
-                className="btn-secondary"
-                style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
-              >
-                Switch Workspace
-              </button>
-              <button
-                onClick={handleLogout}
-                className="btn-danger-outline"
-                style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
-              >
-                Logout
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveView('soc')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeView === 'soc' ? 'var(--colors-primary)' : 'var(--colors-muted-strong)',
+                fontWeight: activeView === 'soc' ? '600' : '500',
+                fontSize: '14px',
+                cursor: 'pointer',
+                borderBottom: activeView === 'soc' ? '2px solid var(--colors-primary)' : '2px solid transparent',
+                padding: '18px 4px 16px'
+              }}
+            >
+              🛡️ SOC Threat Sequence
+            </button>
+          </nav>
+        </div>
 
-            {isConnected ? (
-              <span className="badge badge-success">
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></span>
-                Telemetry Synced
-              </span>
-            ) : (
-              <span className="badge badge-danger">
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></span>
-                API Offline
-              </span>
-            )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--colors-surface-card-dark)', padding: '6px 12px', borderRadius: 'var(--rounded-pill)', border: '1px solid var(--colors-hairline-on-dark)' }}>
+            <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>Workspace:</span>
+            <strong className="body-sm" style={{ color: 'var(--colors-on-dark)' }}>{selectedOrg.name}</strong>
           </div>
-        </header>
 
-        {/* View Selection */}
-        {activeView === 'admin' ? (
-          <AdminDashboard orgId={selectedOrg.id} />
-        ) : (
-          /* SOC Insider Threat View */
-          <main style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(440px, 1.4fr)', gap: '24px' }}>
-            {/* Left Column: Live Alerts Stream */}
-            <div className="feature-card" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>Live Security Alerts</h2>
-                <span className="badge badge-info">{alerts.length} Alerts</span>
-              </div>
+          <button
+            onClick={() => setSelectedOrg(null)}
+            className="btn-secondary"
+            style={{ height: '32px', padding: '0 12px', fontSize: '12px' }}
+          >
+            Switch
+          </button>
 
-              {!isConnected ? (
-                <div
-                  style={{
-                    padding: '16px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(248, 113, 113, 0.08)',
-                    border: '1px solid rgba(248, 113, 113, 0.25)',
-                    color: 'var(--accent-red)',
-                    fontSize: '13px',
-                    lineHeight: '1.5',
-                  }}
-                >
-                  ⚠️ <strong>Backend disconnected</strong> — unable to reach CipherWatch API
-                </div>
-              ) : loading ? (
-                <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0' }}>Loading alerts feed...</div>
-              ) : alerts.length === 0 ? (
-                <div className="body-sm" style={{ color: 'var(--text-muted)', padding: '20px 0' }}>No active alerts detected.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {alerts.map((a) => {
-                    const isSelected = selectedSession?.id === a.session_id
-                    return (
-                      <div
-                        key={a.id}
-                        onClick={() => handleSelectAlert(a)}
-                        style={{
-                          padding: '16px',
-                          borderRadius: 'var(--radius-md)',
-                          background: isSelected ? 'var(--surface-card-hover)' : 'var(--surface-soft)',
-                          border: isSelected ? '1px solid var(--primary-cta)' : '1px solid var(--border-subtle)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isSelected ? '0 0 0 1px var(--primary-cta)' : 'none',
-                        }}
+          <button
+            onClick={handleLogout}
+            className="btn-secondary"
+            style={{ height: '32px', padding: '0 12px', fontSize: '12px' }}
+          >
+            Logout
+          </button>
+
+          {isConnected ? (
+            <span className="badge badge-success">
+              ● Telemetry Online
+            </span>
+          ) : (
+            <span className="badge badge-danger">
+              ● Disconnected
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* Global Zero-Privacy Banner */}
+      <PrivacyBanner />
+
+      {/* Hero Display Section */}
+      <HeroBand onSearch={(q) => console.log('Search query:', q)} />
+
+      {/* Primary Dashboard Interactive Workarea */}
+      <section style={{ padding: '48px 24px', flex: 1 }}>
+        <div className="container">
+          {activeView === 'admin' ? (
+            <AdminDashboard orgId={selectedOrg.id} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+              {/* Session Graph Multi-Hop Visualization Card */}
+              <SessionGraphCard session={selectedSession} />
+
+              {/* Main SOC Layout Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(460px, 1.5fr)', gap: '24px' }}>
+                {/* Left Column: Live Alerts Stream with Tabs */}
+                <div className="alert-feed-card" style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h2 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
+                      🚨 Live Threat Alert Feed
+                    </h2>
+                    <span className="badge badge-info">{filteredAlerts.length} Alerts</span>
+                  </div>
+
+                  {/* Filter Tabs */}
+                  <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--colors-hairline-on-dark)', marginBottom: '16px' }}>
+                    {['ALL', 'CRITICAL', 'WARNING'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setAlertTabFilter(tab)}
+                        className={`alert-tab ${alertTabFilter === tab ? 'active' : ''}`}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span className="badge badge-info">{a.user_id}</span>
-                          <span className={`badge ${a.severity === 'CRITICAL' || a.severity === 'HIGH' ? 'badge-danger' : 'badge-warning'}`}>
-                            {a.severity} ({(a.risk_score * 100).toFixed(0)}%)
-                          </span>
-                        </div>
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
 
-                        <p className="body-sm" style={{ color: 'var(--text-primary)', marginBottom: '8px', fontWeight: '500' }}>
-                          {a.message}
-                        </p>
+                  {!isConnected ? (
+                    <div style={{ padding: '16px', borderRadius: 'var(--rounded-md)', background: 'rgba(246, 70, 93, 0.1)', border: '1px solid rgba(246, 70, 93, 0.3)', color: 'var(--colors-risk-escalating)', fontSize: '13px' }}>
+                      ⚠️ <strong>Backend disconnected</strong> — unable to poll telemetry server
+                    </div>
+                  ) : loading ? (
+                    <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0' }}>Loading live telemetry feed...</div>
+                  ) : filteredAlerts.length === 0 ? (
+                    <div className="body-sm" style={{ color: 'var(--colors-muted)', padding: '20px 0', textAlign: 'center' }}>
+                      No threat alerts match filter "{alertTabFilter}".
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {filteredAlerts.map((a) => {
+                        const isSelected = selectedSession?.id === a.session_id
+                        return (
+                          <div
+                            key={a.id}
+                            className="alert-row"
+                            onClick={() => handleSelectAlert(a)}
+                            style={{
+                              cursor: 'pointer',
+                              padding: '14px 12px',
+                              borderRadius: 'var(--rounded-md)',
+                              backgroundColor: isSelected ? 'var(--colors-surface-elevated-dark)' : 'transparent',
+                              borderBottom: '1px solid var(--colors-hairline-on-dark)',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div className="pattern-icon-chip">
+                                {a.severity === 'CRITICAL' ? '🚨' : '⚠️'}
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <strong className="body-md" style={{ color: 'var(--colors-on-dark)' }}>{a.user_id}</strong>
+                                  <span className="body-sm" style={{ color: 'var(--colors-muted)' }}>({a.device_id})</span>
+                                </div>
+                                <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '2px' }}>
+                                  {a.message}
+                                </p>
+                              </div>
+                            </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
-                          <span>Device: {a.device_id}</span>
-                          <span style={{ color: 'var(--primary-blue)', fontWeight: '500' }}>View session steps →</span>
-                        </div>
-                      </div>
-                    )
-                  })}
+                            <div style={{ textAlign: 'right' }}>
+                              <span className={a.severity === 'CRITICAL' ? 'risk-escalating-cell' : 'risk-contained-cell'}>
+                                {(a.risk_score * 100).toFixed(0)}%
+                              </span>
+                              <div className="body-sm" style={{ color: 'var(--colors-primary)', fontSize: '11px', fontWeight: '600', marginTop: '2px' }}>
+                                Traced →
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Right Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <RiskChart />
-              <AnalystControls alertId={activeAlert?.id} alertStatus={activeAlert?.status} />
-              <SessionTimeline session={selectedSession} onClose={() => setSelectedSession(null)} />
-              <RiskBreakdown />
-              <IncidentSummary alertId={activeAlert?.id} alertData={activeAlert} />
+                {/* Right Column: Detailed Telemetry Analysis Widgets */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <RiskChart />
+                  <AnalystControls alertId={activeAlert?.id} alertStatus={activeAlert?.status} />
+                  <SessionTimeline session={selectedSession} onClose={() => setSelectedSession(null)} />
+                  <RiskBreakdown />
+                  <IncidentSummary alertId={activeAlert?.id} alertData={activeAlert} />
+                </div>
+              </div>
             </div>
-          </main>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
+
+      {/* Privacy Proof Zero Content Band */}
+      <ZeroContentBand />
+
+      {/* Frequently Asked Security Questions */}
+      <FaqSection />
+
+      {/* Enterprise CTA Band */}
+      <CtaBandDark onActionClick={() => setActiveView('admin')} />
+
+      {/* Inverted Light-Mode Footer */}
+      <FooterLight />
     </div>
   )
 }

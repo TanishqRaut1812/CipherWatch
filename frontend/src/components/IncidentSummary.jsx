@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 export const IncidentSummary = ({ alertId, alertData }) => {
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!alertId) {
@@ -12,7 +11,6 @@ export const IncidentSummary = ({ alertId, alertData }) => {
     }
 
     setLoading(true);
-    setError(null);
 
     fetch(`/api/alerts/${alertId}/explanation`)
       .then((res) => {
@@ -23,7 +21,7 @@ export const IncidentSummary = ({ alertId, alertData }) => {
         setExplanation(data.explanation || data.summary || '');
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         // Fallback report for demo state
         const fallbackText = `### Executive Overview
 CipherWatch detected a **${alertData?.severity || 'HIGH'}** severity security incident (Risk Score: **${((alertData?.risk_score || 0.88) * 100).toFixed(0)}%**) for user \`${alertData?.user_id || 'user_dev_secops'}\`. The correlated endpoint session matches operational pattern: **${alertData?.message || 'USB Exfiltration Staging'}**.
@@ -46,7 +44,6 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
       });
   }, [alertId, alertData]);
 
-  // Simple Markdown paragraph formatter
   const renderFormattedText = (text) => {
     if (!text) return null;
     const lines = text.split('\n');
@@ -54,15 +51,15 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
     return lines.map((line, idx) => {
       if (line.startsWith('### ')) {
         return (
-          <h4 key={idx} className="title-sm" style={{ color: 'var(--primary-blue)', marginTop: '16px', marginBottom: '8px' }}>
+          <h4 key={idx} className="title-sm" style={{ color: 'var(--colors-primary)', marginTop: '16px', marginBottom: '8px' }}>
             {line.replace('### ', '')}
           </h4>
         );
       }
       if (line.startsWith('- ') || line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')) {
         return (
-          <div key={idx} className="body-sm" style={{ color: 'var(--text-primary)', marginLeft: '8px', marginBottom: '6px', display: 'flex', gap: '6px' }}>
-            <span style={{ color: 'var(--primary-cyan)' }}>•</span>
+          <div key={idx} className="body-sm" style={{ color: 'var(--colors-on-dark)', marginLeft: '8px', marginBottom: '6px', display: 'flex', gap: '6px' }}>
+            <span style={{ color: 'var(--colors-primary)' }}>•</span>
             <span>{line.replace(/^[-123.]+\s*/, '')}</span>
           </div>
         );
@@ -70,7 +67,7 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
       if (!line.trim()) return <div key={idx} style={{ height: '8px' }} />;
 
       return (
-        <p key={idx} className="body-sm" style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '6px' }}>
+        <p key={idx} className="body-sm" style={{ color: 'var(--colors-muted-strong)', lineHeight: '1.6', marginBottom: '6px' }}>
           {line}
         </p>
       );
@@ -78,35 +75,24 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
   };
 
   return (
-    <div className="feature-card" style={{ padding: '24px' }}>
+    <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 className="title-md" style={{ color: 'var(--text-primary)', margin: 0 }}>
+        <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
           🤖 AI Plain-English Incident Report
         </h3>
         <span className="badge badge-info">0% Content Inspected</span>
       </div>
 
       {loading ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              border: '2px solid var(--border-subtle)',
-              borderTop: '2px solid var(--primary-cta)',
-              borderRadius: '50%',
-              margin: '0 auto 12px',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
+        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--colors-muted)', fontSize: '13px' }}>
           Synthesizing plain-English report from metadata...
         </div>
       ) : (
         <div
           style={{
-            background: 'var(--surface-soft)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
+            background: 'var(--colors-canvas-dark)',
+            border: '1px solid var(--colors-hairline-on-dark)',
+            borderRadius: 'var(--rounded-lg)',
             padding: '20px',
             maxHeight: '380px',
             overflowY: 'auto',
