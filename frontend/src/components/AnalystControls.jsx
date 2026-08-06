@@ -48,10 +48,15 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
   return (
     <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
-          🛡️ SOC Analyst Feedback & Baseline Control
-        </h3>
-        <span className={`badge ${status === 'CONFIRMED_THREAT' || status === 'CONFIRMED' ? 'badge-danger' : status === 'FALSE_POSITIVE' || status === 'RESOLVED' ? 'badge-success' : 'badge-warning'}`}>
+        <div>
+          <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
+            <span>🛡️ SOC ANALYST FEEDBACK & BASELINE CONTROL</span>
+          </div>
+          <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
+            Triage & Tolerances
+          </h3>
+        </div>
+        <span className={`badge ${status === 'CONFIRMED_THREAT' || status === 'CONFIRMED' ? 'badge-danger glow-escalating' : status === 'FALSE_POSITIVE' || status === 'RESOLVED' ? 'badge-success glow-contained' : 'badge-warning glow-primary'}`}>
           Status: {status}
         </span>
       </div>
@@ -74,7 +79,7 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         <button
           disabled={submitting}
           onClick={() => handleFeedback('FALSE_POSITIVE')}
-          className="btn-warning-outline"
+          className={`btn-warning-outline ${status === 'FALSE_POSITIVE' ? 'glow-primary' : ''}`}
           style={{ flex: 1 }}
         >
           {submitting ? 'Updating...' : '⚡ Mark False Positive'}
@@ -83,7 +88,7 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         <button
           disabled={submitting}
           onClick={() => handleFeedback('CONFIRMED_THREAT')}
-          className="btn-danger-outline"
+          className={`btn-danger-outline ${status === 'CONFIRMED_THREAT' ? 'glow-escalating' : ''}`}
           style={{ flex: 1 }}
         >
           {submitting ? 'Updating...' : '🚨 Confirm Threat'}
@@ -92,7 +97,7 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
         <button
           disabled={submitting}
           onClick={() => handleFeedback('RESOLVED')}
-          className="btn-success-outline"
+          className={`btn-success-outline ${status === 'RESOLVED' ? 'glow-contained' : ''}`}
           style={{ flex: 1 }}
         >
           {submitting ? 'Updating...' : '✅ Resolve Alert'}
@@ -110,6 +115,7 @@ export const AnalystControls = ({ alertId, alertStatus, onFeedbackSubmitted }) =
             fontSize: '12px',
             color: 'var(--colors-primary)',
             fontFamily: 'var(--font-mono)',
+            boxShadow: 'var(--shadow-glow-primary)',
           }}
         >
           ✨ {toastMessage}

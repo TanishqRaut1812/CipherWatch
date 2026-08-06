@@ -32,27 +32,36 @@ export const RiskChart = ({ data }) => {
   return (
     <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 className="title-sm" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
-          📈 Longitudinal Risk Score Trend
-        </h3>
-        <span className="body-sm tabular-nums" style={{ color: 'var(--colors-muted-strong)' }}>
-          Real-time Time Series
+        <div>
+          <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
+            <span>📈 LONGITUDINAL RISK SCORE TREND</span>
+          </div>
+          <h3 className="title-sm" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
+            Session Risk Progression
+          </h3>
+        </div>
+        <span className="body-sm tabular-nums" style={{ color: 'var(--colors-primary)', fontWeight: '600' }}>
+          ● LIVE TRACKING
         </span>
       </div>
 
       <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <defs>
-            <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f6465d" stopOpacity="0.3" />
+            <linearGradient id="riskGradientArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f6465d" stopOpacity="0.35" />
               <stop offset="50%" stopColor="#fcd535" stopOpacity="0.15" />
               <stop offset="100%" stopColor="#fcd535" stopOpacity="0.0" />
             </linearGradient>
-            <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id="strokeGradientTrend" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#0ecb81" />
-              <stop offset="50%" stopColor="#fcd535" />
-              <stop offset="100%" stopColor="#f6465d" />
+              <stop offset="50%" stopColor="#ffe066" />
+              <stop offset="100%" stopColor="#ff6b7a" />
             </linearGradient>
+            <filter id="currentPointGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
 
           {/* Grid lines */}
@@ -72,26 +81,30 @@ export const RiskChart = ({ data }) => {
           })}
 
           {/* Filled Area */}
-          <path d={areaD} fill="url(#riskGradient)" />
+          <path d={areaD} fill="url(#riskGradientArea)" />
 
           {/* Stroke Path */}
-          <path d={pathD} fill="none" stroke="url(#strokeGradient)" strokeWidth="2.5" strokeLinecap="round" />
+          <path d={pathD} fill="none" stroke="url(#strokeGradientTrend)" strokeWidth="3" strokeLinecap="round" />
 
           {/* Data Points */}
-          {points.map((pt, idx) => (
-            <circle
-              key={idx}
-              cx={pt.x}
-              cy={pt.y}
-              r={hoveredPoint === idx ? 6 : 4}
-              fill={pt.risk > 0.7 ? 'var(--colors-risk-escalating)' : pt.risk > 0.4 ? 'var(--colors-primary)' : 'var(--colors-risk-contained)'}
-              stroke="var(--colors-canvas-dark)"
-              strokeWidth="2"
-              style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
-              onMouseEnter={() => setHoveredPoint(idx)}
-              onMouseLeave={() => setHoveredPoint(null)}
-            />
-          ))}
+          {points.map((pt, idx) => {
+            const isLatest = idx === points.length - 1;
+            return (
+              <circle
+                key={idx}
+                cx={pt.x}
+                cy={pt.y}
+                r={hoveredPoint === idx ? 7 : isLatest ? 6 : 4}
+                fill={pt.risk > 0.7 ? '#ff6b7a' : pt.risk > 0.4 ? '#ffe066' : '#2effa2'}
+                stroke="var(--colors-canvas-dark)"
+                strokeWidth="2"
+                filter={isLatest ? 'url(#currentPointGlow)' : 'none'}
+                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={() => setHoveredPoint(idx)}
+                onMouseLeave={() => setHoveredPoint(null)}
+              />
+            );
+          })}
         </svg>
 
         {/* Hover Tooltip */}

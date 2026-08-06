@@ -51,7 +51,7 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
     return lines.map((line, idx) => {
       if (line.startsWith('### ')) {
         return (
-          <h4 key={idx} className="title-sm" style={{ color: 'var(--colors-primary)', marginTop: '16px', marginBottom: '8px' }}>
+          <h4 key={idx} className="title-sm text-gradient-primary" style={{ marginTop: '16px', marginBottom: '8px' }}>
             {line.replace('### ', '')}
           </h4>
         );
@@ -77,9 +77,14 @@ The hybrid composite risk scoring engine flagged this session due to anomalous s
   return (
     <div className="alert-feed-card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
-          🤖 AI Plain-English Incident Report
-        </h3>
+        <div>
+          <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
+            <span>🤖 AI PLAIN-ENGLISH INCIDENT REPORT</span>
+          </div>
+          <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
+            Automated Synthesis
+          </h3>
+        </div>
         <span className="badge badge-info">0% Content Inspected</span>
       </div>
 

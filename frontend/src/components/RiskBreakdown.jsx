@@ -1,12 +1,12 @@
 import React from 'react';
 
 const FACTOR_METADATA = [
-  { key: 'isolation_forest_ml', label: 'Isolation Forest ML', maxPts: 25, color: 'var(--colors-primary)' },
-  { key: 'rule_heuristics', label: 'Rule Heuristics', maxPts: 25, color: '#f59e0b' },
-  { key: 'folder_sensitivity', label: 'Folder Sensitivity', maxPts: 10, color: 'var(--colors-risk-escalating)' },
-  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, color: 'var(--colors-info)' },
-  { key: 'graph_topology', label: 'Graph Topology', maxPts: 15, color: '#a855f7' },
-  { key: 'longitudinal_drift', label: '14-Day Longitudinal Drift', maxPts: 10, color: 'var(--colors-risk-contained)' },
+  { key: 'isolation_forest_ml', label: 'Isolation Forest ML', maxPts: 25, grad: 'var(--gradient-primary)' },
+  { key: 'rule_heuristics', label: 'Rule Heuristics', maxPts: 25, grad: 'var(--gradient-primary-reverse)' },
+  { key: 'folder_sensitivity', label: 'Folder Sensitivity', maxPts: 10, grad: 'var(--gradient-risk-escalating)' },
+  { key: 'baseline_deviation', label: 'Baseline Deviation', maxPts: 15, grad: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)' },
+  { key: 'graph_topology', label: 'Graph Topology', maxPts: 15, grad: 'linear-gradient(135deg, #c084fc 0%, #a855f7 100%)' },
+  { key: 'longitudinal_drift', label: '14-Day Longitudinal Drift', maxPts: 10, grad: 'var(--gradient-risk-contained)' },
 ];
 
 export const RiskBreakdown = ({ breakdownData }) => {
@@ -30,7 +30,7 @@ export const RiskBreakdown = ({ breakdownData }) => {
   const { risk_score, predicted_intent, breakdown, matched_patterns, topology_multiplier } = data;
 
   const getScoreBadgeClass = (score) => {
-    if (score >= 70) return 'badge-danger';
+    if (score >= 70) return 'badge-danger glow-escalating';
     if (score >= 40) return 'badge-warning';
     return 'badge-success';
   };
@@ -39,37 +39,41 @@ export const RiskBreakdown = ({ breakdownData }) => {
     <div className="alert-feed-card" style={{ padding: '24px', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
+          <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
+            <span>📊 RISK FACTOR BREAKDOWN</span>
+          </div>
           <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
-            Risk Factor Breakdown
+            Intent: <span className="text-gradient-primary">{predicted_intent || 'Analyzing...'}</span>
           </h3>
-          <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>
-            Intent: <strong style={{ color: 'var(--colors-primary)' }}>{predicted_intent || 'Analyzing...'}</strong>
-          </span>
         </div>
         <div className={`badge ${getScoreBadgeClass(risk_score)} tabular-nums`} style={{ fontSize: '13px', padding: '6px 14px' }}>
           {risk_score} / 100
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {FACTOR_METADATA.map(({ key, label, maxPts, color }) => {
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {FACTOR_METADATA.map(({ key, label, maxPts, grad }) => {
           const val = breakdown?.[key] || 0.0;
           const pct = Math.min(100, Math.max(0, (val / maxPts) * 100));
+
+          // Vary progress bar height by point weight
+          const barHeight = val >= 18 ? 12 : val >= 10 ? 8 : 5;
+          const isHeavy = val >= 18;
 
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--colors-muted-strong)' }}>{label}</span>
-                <span className="tabular-nums" style={{ color: 'var(--colors-on-dark)', fontWeight: '600' }}>
+                <span style={{ color: 'var(--colors-muted-strong)', fontWeight: isHeavy ? '600' : '400' }}>{label}</span>
+                <span className="tabular-nums" style={{ color: isHeavy ? 'var(--colors-primary)' : 'var(--colors-on-dark)', fontWeight: '600' }}>
                   +{val} pts <span style={{ color: 'var(--colors-muted)' }}>/ {maxPts}</span>
                 </span>
               </div>
               <div
                 style={{
                   width: '100%',
-                  height: '6px',
+                  height: `${barHeight}px`,
                   backgroundColor: 'var(--colors-canvas-dark)',
-                  borderRadius: '3px',
+                  borderRadius: '4px',
                   overflow: 'hidden',
                   border: '1px solid var(--colors-hairline-on-dark)',
                 }}
@@ -78,8 +82,9 @@ export const RiskBreakdown = ({ breakdownData }) => {
                   style={{
                     width: `${pct}%`,
                     height: '100%',
-                    backgroundColor: color,
-                    borderRadius: '3px',
+                    background: grad,
+                    borderRadius: '4px',
+                    boxShadow: isHeavy ? 'var(--shadow-glow-primary)' : 'none',
                     transition: 'width 0.4s ease',
                   }}
                 />
@@ -91,8 +96,8 @@ export const RiskBreakdown = ({ breakdownData }) => {
 
       {matched_patterns && matched_patterns.length > 0 && (
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline-on-dark)' }}>
-          <div className="body-sm" style={{ textTransform: 'uppercase', color: 'var(--colors-muted)', marginBottom: '8px', letterSpacing: '0.02em', fontSize: '11px', fontWeight: 600 }}>
-            Graph Topology Patterns ({topology_multiplier}x Multiplier)
+          <div className="section-terminal-label" style={{ marginBottom: '8px' }}>
+            GRAPH TOPOLOGY PATTERNS ({topology_multiplier}x MULTIPLIER)
           </div>
           {matched_patterns.map((pat, idx) => (
             <div
@@ -104,11 +109,14 @@ export const RiskBreakdown = ({ breakdownData }) => {
                 background: 'var(--colors-canvas-dark)',
                 border: '1px solid var(--colors-hairline-on-dark)',
                 borderRadius: 'var(--rounded-sm)',
-                padding: '6px 10px',
+                padding: '8px 12px',
                 marginBottom: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              ⚡ {pat}
+              <span style={{ color: 'var(--colors-primary)' }}>⚡</span> {pat}
             </div>
           ))}
         </div>
