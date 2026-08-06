@@ -1,7 +1,7 @@
 import argparse
 import sys
 import logging
-from simulator.injector import EventInjector, DEFAULT_API_URL
+from simulator.injector import EventInjector, DEFAULT_BACKEND_URL
 from simulator.scenarios import (
     get_scenario_normal_day,
     get_scenario_bulk_exfiltration,
@@ -24,8 +24,8 @@ def main():
     parser.add_argument(
         "--api-url",
         type=str,
-        default=DEFAULT_API_URL,
-        help=f"Target backend ingestion API endpoint (default: {DEFAULT_API_URL})",
+        default=DEFAULT_BACKEND_URL,
+        help=f"Target backend root URL (default: {DEFAULT_BACKEND_URL})",
     )
     parser.add_argument(
         "--delay",
