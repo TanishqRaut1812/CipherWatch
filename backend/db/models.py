@@ -105,6 +105,7 @@ class AgentModel(Base):
     metrics = relationship("MetricsSnapshotModel", back_populates="agent", cascade="all, delete-orphan")
     process_events = relationship("ProcessEventModel", back_populates="agent", cascade="all, delete-orphan")
     fs_events = relationship("FSEventModel", back_populates="agent", cascade="all, delete-orphan")
+    usb_events = relationship("USBEventModel", back_populates="agent", cascade="all, delete-orphan")
     alerts = relationship("AlertModel", back_populates="agent", cascade="all, delete-orphan")
 
     def get_status(self, threshold_seconds: int = 90) -> str:
@@ -173,6 +174,25 @@ class FSEventModel(Base):
     __table_args__ = (Index("idx_fs_events_agent_ts", "agent_id", "timestamp"),)
 
     agent = relationship("AgentModel", back_populates="fs_events")
+
+
+class USBEventModel(Base):
+    """SQLAlchemy model for USB storage connection/disconnection events."""
+
+    __tablename__ = "usb_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    agent_id = Column(String(64), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    action = Column(String(32), nullable=False)  # connected | disconnected | transfer
+    vendor_id = Column(String(32), nullable=True)
+    product_id = Column(String(32), nullable=True)
+    device_name = Column(String(128), nullable=True)
+    mount_point = Column(String(256), nullable=True)
+
+    __table_args__ = (Index("idx_usb_events_agent_ts", "agent_id", "timestamp"),)
+
+    agent = relationship("AgentModel", back_populates="usb_events")
 
 
 class EventModel(Base):

@@ -4,8 +4,11 @@ from typing import Callable, Optional
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
+from agent.config import setup_logger
 from agent.monitors.base import BaseMonitor
 from shared.schemas import EventCreate, EventType, FilesystemMetadata
+
+agent_logger = setup_logger("cipherwatch-agent-fs")
 
 ENCRYPTED_ARCHIVE_EXTENSIONS = {".zip", ".7z", ".rar", ".tar.gz", ".tgz", ".gpg", ".enc"}
 
@@ -40,49 +43,70 @@ class FilesystemMetadataHandler(FileSystemEventHandler):
         self.emit_callback = emit_callback
 
     def process_event(self, event: FileSystemEvent, action: str) -> None:
-        if event.is_directory:
-            return
-
-        src_path = event.src_path
-        extension = Path(src_path).suffix.lower()
-        file_size = 0
         try:
-            if os.path.exists(src_path):
-                file_size = os.path.getsize(src_path)
-        except Exception:
+            if event.is_directory:
+                return
+
+            src_path = event.src_path
+            extension = Path(src_path).suffix.lower()
             file_size = 0
+            try:
+                if os.path.exists(src_path):
+                    file_size = os.path.getsize(src_path)
+            except (PermissionError, OSError) as pe:
+                agent_logger.warning(f"Permission denied/OSError accessing file stats for {src_path}: {pe}")
+                file_size = 0
+            except Exception as exc:
+                agent_logger.warning(f"Could not retrieve file stats for {src_path}: {exc}")
+                file_size = 0
 
-        is_encrypted = extension in ENCRYPTED_ARCHIVE_EXTENSIONS
-        folder_category = classify_folder_category(src_path)
+            is_encrypted = extension in ENCRYPTED_ARCHIVE_EXTENSIONS
+            folder_category = classify_folder_category(src_path)
 
-        metadata = FilesystemMetadata(
-            action=action,
-            extension=extension or None,
-            file_size_bytes=file_size,
-            is_encrypted_archive=is_encrypted,
-            folder_category=folder_category,
-        )
+            metadata = FilesystemMetadata(
+                action=action,
+                extension=extension or None,
+                file_size_bytes=file_size,
+                is_encrypted_archive=is_encrypted,
+                folder_category=folder_category,
+            )
 
-        event_payload = EventCreate(
-            user_id=self.user_id,
-            device_id=self.device_id,
-            event_type=EventType.FILESYSTEM,
-            metadata=metadata.model_dump(),
-        )
+            event_payload = EventCreate(
+                user_id=self.user_id,
+                device_id=self.device_id,
+                event_type=EventType.FILESYSTEM,
+                metadata=metadata.model_dump(),
+            )
 
-        self.emit_callback(event_payload)
+            self.emit_callback(event_payload)
+        except PermissionError as pe:
+            agent_logger.warning(f"PermissionError processing filesystem event '{action}' on {event.src_path}: {pe}")
+        except Exception as exc:
+            agent_logger.warning(f"Unexpected error processing filesystem event '{action}' on {event.src_path}: {exc}")
 
     def on_created(self, event: FileSystemEvent) -> None:
-        self.process_event(event, "created")
+        try:
+            self.process_event(event, "created")
+        except Exception as exc:
+            agent_logger.debug(f"Ignored error in on_created: {exc}")
 
     def on_modified(self, event: FileSystemEvent) -> None:
-        self.process_event(event, "modified")
+        try:
+            self.process_event(event, "modified")
+        except Exception as exc:
+            agent_logger.debug(f"Ignored error in on_modified: {exc}")
 
     def on_deleted(self, event: FileSystemEvent) -> None:
-        self.process_event(event, "deleted")
+        try:
+            self.process_event(event, "deleted")
+        except Exception as exc:
+            agent_logger.debug(f"Ignored error in on_deleted: {exc}")
 
     def on_moved(self, event: FileSystemEvent) -> None:
-        self.process_event(event, "moved")
+        try:
+            self.process_event(event, "moved")
+        except Exception as exc:
+            agent_logger.debug(f"Ignored error in on_moved: {exc}")
 
 
 class FilesystemMonitor(BaseMonitor):

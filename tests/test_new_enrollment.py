@@ -73,21 +73,19 @@ def test_secure_agent_enrollment_and_ingestion():
     )
     assert bad_hb.status_code == 401
 
-    # 6. Ingest event using token
+    # 6. Ingest event using token on agent endpoint
     event_payload = {
-        "event_id": f"evt-{secrets.token_hex(8)}",
-        "user_id": "test-user",
-        "device_id": "device-uuid-123", # client-supplied
-        "event_type": "process",
-        "timestamp": "2026-08-04T12:00:00Z",
-        "metadata": {"name": "curl", "exe_path": "/usr/bin/curl"},
+        "metrics": {"cpu_percent": 10.0, "mem_percent": 20.0, "disk_percent": 30.0, "net_bytes_sent": 100, "net_bytes_recv": 200, "process_count": 50},
+        "process_events": [{"event_type": "start", "pid": 1234, "name": "curl", "exe_path": "/usr/bin/curl", "cmdline": "curl example.com", "user": "test-user", "cpu_percent": 0.5, "mem_rss": 5000000}],
+        "fs_events": [],
     }
     event_resp = client.post(
-        "/api/events",
+        f"/api/agents/{agent_id}/events",
         headers={"Authorization": f"Bearer {agent_token}"},
         json=event_payload,
     )
-    assert event_resp.status_code == 201
+    assert event_resp.status_code == 200
+    assert event_resp.json()["status"] == "success"
 
     # 7. Rotate enrollment key
     rotate_resp = client.post(

@@ -6,20 +6,38 @@ from backend.db.base import Base
 
 client = TestClient(app)
 
+from backend.db.models import OrganizationModel, UserModel
+from backend.db.session import TestingSessionLocal, engine, get_db
+
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    user = UserModel(id="u_seed", email="seed@test.com", username="seeduser", password_hash="h")
+    db.add(user)
+    org = OrganizationModel(
+        id="org_seed",
+        name="Seed Org",
+        organization_id="org-seed-uuid",
+        enrollment_key="cwek_seedkey1234567890123456789012345",
+        owner_user_id=user.id,
+    )
+    db.add(org)
+    db.commit()
+    db.close()
     yield
 
 def test_agent_registration_and_auth():
-    # Register agent
+    # Enroll agent
     response = client.post(
-        "/api/agents/register",
+        "/api/agent/enroll",
         json={
+            "organization_id": "org-seed-uuid",
+            "enrollment_key": "cwek_seedkey1234567890123456789012345",
             "hostname": "prod-sec-workstation-01",
+            "device_uuid": "dev-uuid-001",
             "os": "Linux 6.5.0-x86_64",
-            "ip": "192.168.1.105",
             "agent_version": "1.2.0",
         },
     )
@@ -47,13 +65,15 @@ def test_agent_registration_and_auth():
 
 
 def test_agent_event_ingestion_and_threat_detection():
-    # Register
+    # Enroll
     reg_resp = client.post(
-        "/api/agents/register",
+        "/api/agent/enroll",
         json={
+            "organization_id": "org-seed-uuid",
+            "enrollment_key": "cwek_seedkey1234567890123456789012345",
             "hostname": "finance-node-03",
+            "device_uuid": "dev-uuid-002",
             "os": "Windows 11 Enterprise",
-            "ip": "10.0.4.12",
             "agent_version": "1.2.0",
         },
     )

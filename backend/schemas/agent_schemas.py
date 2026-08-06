@@ -54,10 +54,22 @@ class FSEventSchema(BaseModel):
     is_directory: bool = False
 
 
+class USBEventSchema(BaseModel):
+    timestamp: Optional[datetime] = None
+    action: str = Field(..., description="connected, disconnected, or transfer")
+    vendor_id: Optional[str] = None
+    product_id: Optional[str] = None
+    device_name: Optional[str] = None
+    mount_point: Optional[str] = None
+
+
 class AgentIngestionPayload(BaseModel):
     metrics: Optional[MetricsSnapshotSchema] = None
     process_events: List[ProcessEventSchema] = []
     fs_events: List[FSEventSchema] = []
+    usb_events: List[USBEventSchema] = []
+    # raw_events: Intentional escape hatch for future un-typed or ad-hoc metadata events. Not default pattern.
+    raw_events: List[Dict[str, Any]] = []
 
 
 class AgentIngestionResponse(BaseModel):
@@ -66,6 +78,7 @@ class AgentIngestionResponse(BaseModel):
     metrics_ingested: int
     process_events_ingested: int
     fs_events_ingested: int
+    usb_events_ingested: int = 0
     alerts_triggered: int
 
 

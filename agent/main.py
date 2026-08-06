@@ -139,7 +139,7 @@ def run_setup(args) -> None:
 
 
 def heartbeat_loop(backend_url: str, agent_id: str, auth_token: str, stop_event: threading.Event) -> None:
-    url = f"{backend_url.rstrip('/')}/api/heartbeat"
+    url = f"{backend_url.rstrip('/')}/api/agents/{agent_id}/heartbeat"
     headers = {"Authorization": f"Bearer {auth_token}"}
     
     while not stop_event.is_set():
@@ -186,7 +186,7 @@ def run_agent(args) -> None:
     logger.info(f"   • Backend API: {backend_url}")
 
     # Test connectivity with a heartbeat
-    test_url = f"{backend_url.rstrip('/')}/api/heartbeat"
+    test_url = f"{backend_url.rstrip('/')}/api/agents/{agent_id}/heartbeat"
     headers = {"Authorization": f"Bearer {auth_token}"}
     try:
         resp = httpx.post(test_url, headers=headers, timeout=5.0)
@@ -208,7 +208,7 @@ def run_agent(args) -> None:
     hb_thread.start()
 
     # Start Event Publisher
-    publisher = EventPublisher(backend_url=backend_url, auth_token=auth_token)
+    publisher = EventPublisher(backend_url=backend_url, agent_id=agent_id, auth_token=auth_token)
     publisher.start()
 
     # Define common callback for event ingestion
@@ -216,7 +216,7 @@ def run_agent(args) -> None:
         # Override device_id with the registered agent_id
         event.device_id = agent_id
         event.user_id = args.user_id
-        logger.debug(f"Event captured: type={event.event_type.value}, user={event.user_id}")
+        logger.debug(f"Event captured: type={event.event_type.value if hasattr(event.event_type, 'value') else event.event_type}, user={event.user_id}")
         publisher.publish(event)
 
     # Start monitors
@@ -231,8 +231,10 @@ def run_agent(args) -> None:
     )
     monitors.append(pm)
 
-    # 2. Filesystem Monitor
-    watch_path = "./monitored_folder"
+    # 2. Filesystem Monitor (Real User Directory: Downloads)
+    watch_path = os.path.expanduser("~/Downloads")
+    if not os.path.exists(watch_path):
+        watch_path = os.path.expanduser("~/Documents")
     if not os.path.exists(watch_path):
         os.makedirs(watch_path, exist_ok=True)
     fm = FilesystemMonitor(
@@ -242,6 +244,7 @@ def run_agent(args) -> None:
         callback=on_event_emitted
     )
     monitors.append(fm)
+
 
     # 3. USB Monitor
     um = USBMonitor(
