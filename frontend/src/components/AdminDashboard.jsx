@@ -3,14 +3,17 @@ import { Shield, AlertTriangle, X, Plus } from 'lucide-react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
 import NotificationCenter from './NotificationCenter'
 import OrganizationDashboard from './OrganizationDashboard'
+import OrganizationSwitchModal from './OrganizationSwitchModal'
 
-export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLogout, onSwitchOrg }) {
+export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogout, onSwitchOrg, organizations: initialOrgs, onSelectOrg }) {
   // Navigation state for detailed OrganizationDashboard view
   const [selectedOrgForDetails, setSelectedOrgForDetails] = useState(null)
+  const [isSwitchOrgModalOpen, setIsSwitchOrgModalOpen] = useState(false)
+  const [threatChartType, setThreatChartType] = useState('pie')
 
-  // Organizations state loaded dynamically from Supabase database
-  const [organizations, setOrganizations] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  // Organizations state loaded dynamically from backend/props
+  const [organizations, setOrganizations] = useState(initialOrgs || [])
+  const [isLoading, setIsLoading] = useState(!initialOrgs || initialOrgs.length === 0)
 
   // Fetch real organizations from backend on mount
   useEffect(() => {
@@ -211,15 +214,19 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
         org={selectedOrgForDetails}
         onBackToAdmin={() => setSelectedOrgForDetails(null)}
         currentUser={currentUser}
-        onSwitchView={onSwitchView}
         onLogout={onLogout}
         onSwitchOrg={onSwitchOrg}
+        organizations={organizations}
+        onSelectOrg={(org) => {
+          setSelectedOrgForDetails(org)
+          if (onSelectOrg) onSelectOrg(org)
+        }}
       />
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP NAVIGATION BAR                                         */}
@@ -298,56 +305,72 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
 
         {/* Right Side: Navigation & Notification & Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {onSwitchView && (
-            <button
-              onClick={() => onSwitchView('soc')}
+          {/* Organization Switcher Dropdown */}
+          {organizations && organizations.length > 0 && (
+            <div
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#fcd535'
-                e.currentTarget.style.borderColor = '#fcd535'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#cbd5e1'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(252, 213, 53, 0.3)',
+                padding: '4px 12px',
+                borderRadius: '8px',
               }}
             >
-              <Shield size={14} /> SOC Threat Sequence
-            </button>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '800', letterSpacing: '0.5px' }}>
+                TELEMETRY ORG:
+              </span>
+              <select
+                value={selectedOrgForDetails?.id || orgId || (organizations[0] && organizations[0].id)}
+                onChange={(e) => {
+                  const targetId = parseInt(e.target.value, 10)
+                  const found = organizations.find((o) => o.id === targetId)
+                  if (found) {
+                    setSelectedOrgForDetails(found)
+                    if (onSelectOrg) onSelectOrg(found)
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#fcd535',
+                  fontWeight: '800',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id} style={{ backgroundColor: '#0c0f1d', color: '#ffffff' }}>
+                    {org.name} ({org.riskScore !== undefined ? `${org.riskScore}% Risk` : 'Active'})
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* Email Notification Center Bell */}
           <NotificationCenter userEmail={currentUser?.email} />
 
-          {onSwitchOrg && (
-            <button
-              onClick={onSwitchOrg}
-              style={{
-                background: 'none',
-                border: '1px solid var(--colors-hairline-on-dark)',
-                color: 'var(--colors-muted-strong)',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                fontWeight: '600',
-              }}
-            >
-              Switch Org
-            </button>
-          )}
+          <button
+            onClick={() => setIsSwitchOrgModalOpen(true)}
+            style={{
+              background: 'rgba(252, 213, 53, 0.1)',
+              border: '1px solid rgba(252, 213, 53, 0.3)',
+              color: '#fcd535',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            🏢 Switch Org
+          </button>
 
           {onLogout && (
             <button
@@ -513,7 +536,7 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
       {/* ------------------------------------------------------------- */}
       {/* 3. MAIN BODY - THREE PANELS LAYOUT                           */}
       {/* ------------------------------------------------------------- */}
-      <main style={{ padding: '16px 28px 40px 28px', display: 'grid', gridTemplateColumns: 'minmax(340px, 1.2fr) minmax(380px, 1fr)', gap: '24px' }}>
+      <main style={{ flex: 1, padding: '16px 28px 40px 28px', display: 'grid', gridTemplateColumns: 'calc(55% - 12px) calc(45% - 12px)', gap: '24px', alignItems: 'stretch' }}>
         
         {/* ========================================================= */}
         {/* LEFT PANEL: ORGANIZATION LIST (Taller, Spans both right)  */}
@@ -526,6 +549,7 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
+            height: '100%',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
           }}
         >
@@ -795,11 +819,11 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
         </section>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN: TOP PIE CHART & BOTTOM BAR GRAPH            */}
+        {/* RIGHT COLUMN: UNIFIED THREAT ANALYTICS CARD               */}
         {/* ========================================================= */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           
-          {/* RIGHT, TOP PANEL: PLACEHOLDER PIE CHART */}
+          {/* UNIFIED THREAT ANALYTICS COMPONENT WITH PIE/BAR TOGGLE */}
           <section
             style={{
               backgroundColor: 'var(--colors-surface-card-dark)',
@@ -807,110 +831,146 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
               borderRadius: '14px',
               padding: '24px',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
             }}
           >
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
-                Threat Severity Breakdown
-              </h3>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                Fleet-wide security incident distribution
-              </span>
+            {/* Header with Title & Chart Type Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
+                  {threatChartType === 'pie' ? 'Threat Severity Breakdown' : 'Hourly Threat Density'}
+                </h3>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  {threatChartType === 'pie'
+                    ? 'Fleet-wide security incident distribution'
+                    : 'Anomaly events recorded over the last 24 hours'}
+                </span>
+              </div>
+
+              {/* View Toggle Buttons */}
+              <div
+                style={{
+                  display: 'flex',
+                  backgroundColor: '#0c0f1d',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  padding: '2px',
+                  gap: '2px',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setThreatChartType('pie')}
+                  style={{
+                    backgroundColor: threatChartType === 'pie' ? 'rgba(252, 213, 53, 0.15)' : 'transparent',
+                    color: threatChartType === 'pie' ? '#fcd535' : '#94a3b8',
+                    border: threatChartType === 'pie' ? '1px solid rgba(252, 213, 53, 0.4)' : '1px solid transparent',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  🥧 Pie View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThreatChartType('bar')}
+                  style={{
+                    backgroundColor: threatChartType === 'bar' ? 'rgba(252, 213, 53, 0.15)' : 'transparent',
+                    color: threatChartType === 'bar' ? '#fcd535' : '#94a3b8',
+                    border: threatChartType === 'bar' ? '1px solid rgba(252, 213, 53, 0.4)' : '1px solid transparent',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  📊 Bar View
+                </button>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', height: '160px' }}>
-              {/* Recharts Threat Breakdown Donut Chart */}
-              <div style={{ width: 140, height: 140 }}>
+            {/* Dynamic Chart Body */}
+            {threatChartType === 'pie' ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', flex: 1, minHeight: '300px' }}>
+                <div style={{ width: 200, height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                      />
+                      <Pie
+                        data={[
+                          { name: 'Critical Threat', value: 35, color: '#f6465d' },
+                          { name: 'Elevated Risk', value: 45, color: '#fcd535' },
+                          { name: 'Normal Baseline', value: 20, color: '#0ecb81' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={85}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
+                          <Cell key={`admin-cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 8px #f6465d' }} />
+                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Critical Threat (35%)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 8px #fcd535' }} />
+                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Elevated Risk (45%)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 8px #0ecb81' }} />
+                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Normal Baseline (20%)</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ flex: 1, minHeight: '300px', width: '100%', display: 'flex', alignItems: 'center' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <BarChart
+                    data={[
+                      { time: '00:00', threats: 30 },
+                      { time: '04:00', threats: 45 },
+                      { time: '08:00', threats: 75 },
+                      { time: '12:00', threats: 95 },
+                      { time: '16:00', threats: 60 },
+                      { time: '20:00', threats: 35 },
+                    ]}
+                    margin={{ top: 20, right: 10, left: -20, bottom: 10 }}
+                  >
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                      contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
                     />
-                    <Pie
-                      data={[
-                        { name: 'Critical Threat', value: 35, color: '#f6465d' },
-                        { name: 'Elevated Risk', value: 45, color: '#fcd535' },
-                        { name: 'Normal Baseline', value: 20, color: '#0ecb81' },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={32}
-                      outerRadius={58}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
-                        <Cell key={`admin-cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                    <Bar dataKey="threats" fill="#fcd535" radius={[6, 6, 0, 0]}>
+                      {[30, 45, 75, 95, 60, 35].map((val, idx) => (
+                        <Cell key={`bar-${idx}`} fill={val >= 90 ? '#f6465d' : val >= 60 ? '#fcd535' : '#0ecb81'} />
                       ))}
-                    </Pie>
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Pie Chart Legend */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 6px #f6465d' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Critical Threat (35%)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 6px #fcd535' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Elevated Risk (45%)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 6px #0ecb81' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>Normal Baseline (20%)</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* RIGHT, BOTTOM PANEL: RECHARTS HOURLY THREAT DENSITY BAR GRAPH */}
-          <section
-            style={{
-              backgroundColor: 'var(--colors-surface-card-dark)',
-              border: '1px solid var(--colors-hairline-on-dark)',
-              borderRadius: '14px',
-              padding: '24px',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-            }}
-          >
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
-                Hourly Threat Density
-              </h3>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                Anomaly events recorded over the last 24 hours
-              </span>
-            </div>
-
-            {/* Recharts Bar Chart */}
-            <div style={{ height: '160px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { time: '00:00', threats: 30 },
-                    { time: '04:00', threats: 45 },
-                    { time: '08:00', threats: 75 },
-                    { time: '12:00', threats: 95 },
-                    { time: '16:00', threats: 60 },
-                    { time: '20:00', threats: 35 },
-                  ]}
-                  margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                >
-                  <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="threats" fill="#fcd535" radius={[4, 4, 0, 0]}>
-                    {[30, 45, 75, 95, 60, 35].map((val, idx) => (
-                      <Cell key={`bar-${idx}`} fill={val >= 90 ? '#f6465d' : val >= 60 ? '#fcd535' : '#0ecb81'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            )}
           </section>
         </div>
       </main>
@@ -1100,7 +1160,41 @@ export default function AdminDashboard({ orgId, currentUser, onSwitchView, onLog
         </div>
       )}
 
-      {/* ------------------------------------------------------------- */}
+      {/* Organization Switch Modal */}
+      <OrganizationSwitchModal
+        isOpen={isSwitchOrgModalOpen}
+        onClose={() => setIsSwitchOrgModalOpen(false)}
+        organizations={organizations}
+        currentOrgId={selectedOrgForDetails?.id || orgId || (organizations[0] && organizations[0].id)}
+        onSelectOrg={(org) => {
+          setSelectedOrgForDetails(org)
+          if (onSelectOrg) onSelectOrg(org)
+        }}
+        onCreateOrg={async (name) => {
+          const res = await fetch('/api/orgs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          })
+          if (!res.ok) throw new Error('Failed to create organization')
+          const created = await res.json()
+          const credsRes = await fetch(`/api/orgs/${created.id}/registration-credentials`)
+          const creds = credsRes.ok ? await credsRes.json() : null
+          const newOrgItem = {
+            id: created.id,
+            name: created.name,
+            role: created.role || 'owner',
+            usersCount: 0,
+            threatLevel: 'LOW',
+            riskScore: 15,
+            dateAdded: new Date().toISOString().split('T')[0],
+            apiKey: creds?.enrollment_key || creds?.registration_key || `cwek_${created.id}`,
+          }
+          setOrganizations((prev) => [newOrgItem, ...prev])
+          setSelectedOrgForDetails(newOrgItem)
+          if (onSelectOrg) onSelectOrg(newOrgItem)
+        }}
+      />
       {/* KEYFRAME ANIMATIONS                                           */}
       {/* ------------------------------------------------------------- */}
       <style>{`
