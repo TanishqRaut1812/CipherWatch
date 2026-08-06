@@ -22,6 +22,7 @@ class EventPublisher:
         batch_size: int = 20,
         flush_interval: float = 2.0,
     ):
+        self.backend_url = backend_url.rstrip("/")
         self.agent_id = agent_id
         self.auth_token = auth_token
         if not self.agent_id:

@@ -20,6 +20,10 @@ def main():
 
     # 2. Start FastAPI Backend Server
     print("\n[2/4] Starting FastAPI backend server on http://127.0.0.1:8000 ...")
+    try:
+        subprocess.run(["fuser", "-k", "8000/tcp"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
     backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"]
     backend_proc = subprocess.Popen(backend_cmd)
 

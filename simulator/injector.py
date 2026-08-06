@@ -15,8 +15,9 @@ class EventInjector:
     directly into the CipherWatch backend ingestion pipeline, simulating agent activities.
     """
 
-    def __init__(self, backend_url: str = DEFAULT_BACKEND_URL):
-        self.backend_url = backend_url.rstrip("/")
+    def __init__(self, api_url: str = DEFAULT_BACKEND_URL, backend_url: Optional[str] = None):
+        target = backend_url or api_url
+        self.backend_url = target.rstrip("/")
         self.agent_id: Optional[str] = None
         self.auth_token: Optional[str] = None
 
@@ -26,28 +27,34 @@ class EventInjector:
             return True
 
         enroll_url = f"{self.backend_url}/api/agent/enroll"
-        payload = {
-            "organization_id": "org-default-uuid",
-            "enrollment_key": "cwek_defaultkey1234567890123456789012345",
-            "device_uuid": "sim-device-001",
-            "hostname": "simulator-workstation",
-            "os": "Linux",
-            "agent_version": "1.0.0",
-        }
-        try:
-            res = requests.post(enroll_url, json=payload, timeout=5)
-            if res.status_code == 201:
-                data = res.json()
-                self.agent_id = data["agent_id"]
-                self.auth_token = data["auth_token"]
-                logger.info(f"Simulator enrolled agent successfully: agent_id={self.agent_id}")
-                return True
-            else:
-                logger.error(f"Simulator enrollment failed: {res.status_code} - {res.text}")
+        candidates = [
+            ("org-default-uuid", "cwek_defaultkey1234567890123456789012345"),
+            ("default_org", "cwek_defaultkey1234567890123456789012345"),
+            ("default_org", "cwrk_defaultkey1234567890123456"),
+        ]
+        for org_id, key in candidates:
+            payload = {
+                "organization_id": org_id,
+                "enrollment_key": key,
+                "device_uuid": "sim-device-001",
+                "hostname": "simulator-workstation",
+                "os": "Linux",
+                "agent_version": "1.0.0",
+            }
+            try:
+                res = requests.post(enroll_url, json=payload, timeout=5)
+                if res.status_code == 201:
+                    data = res.json()
+                    self.agent_id = data["agent_id"]
+                    self.auth_token = data["auth_token"]
+                    logger.info(f"Simulator enrolled agent successfully: agent_id={self.agent_id}")
+                    return True
+            except Exception as e:
+                logger.error(f"Simulator failed to connect for enrollment: {e}")
                 return False
-        except Exception as e:
-            logger.error(f"Simulator failed to connect for enrollment: {e}")
-            return False
+
+        logger.error("Simulator enrollment failed with all candidate credentials.")
+        return False
 
     def inject_sequence(self, event_list: List[Dict[str, Any]], delay_sec: float = 0.5) -> List[Dict[str, Any]]:
         """Group events into an AgentIngestionPayload and post to the agent telemetry endpoint."""
