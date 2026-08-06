@@ -23,15 +23,15 @@ export default function SessionGraphCard({ session }) {
     : defaultChain
 
   return (
-    <div className="session-graph-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+    <div className="session-graph-card" style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
-          <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>⚡ Multi-Hop Event Chain Graph</span>
+          <div className="section-terminal-label" style={{ marginBottom: '4px' }}>
+            <span>⚡ MULTI-HOP EVENT CHAIN GRAPH</span>
+          </div>
+          <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>
+            Reconstructed Telemetry Causality Sequence
           </h3>
-          <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginTop: '4px' }}>
-            Reconstructed causal causality sequence for session telemetry
-          </p>
         </div>
         <span className="badge badge-warning" style={{ fontFamily: 'var(--font-mono)' }}>
           {nodes.length} Nodes Traced
@@ -47,8 +47,16 @@ export default function SessionGraphCard({ session }) {
               <stop offset="50%" stopColor="#fcd535" />
               <stop offset="100%" stopColor="#f6465d" />
             </linearGradient>
-            <filter id="nodeGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
+            <linearGradient id="yellowNodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffe066" />
+              <stop offset="100%" stopColor="#f0b90b" />
+            </linearGradient>
+            <linearGradient id="redNodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ff6b7a" />
+              <stop offset="100%" stopColor="#f6465d" />
+            </linearGradient>
+            <filter id="nodeGlowEscalating" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
@@ -66,14 +74,14 @@ export default function SessionGraphCard({ session }) {
                   y1={y}
                   x2={x2}
                   y2={y}
-                  stroke={i === nodes.length - 2 ? 'var(--colors-risk-escalating)' : 'var(--colors-hairline-on-dark)'}
+                  stroke={i === nodes.length - 2 ? 'url(#redNodeGrad)' : 'url(#edgeGradient)'}
                   strokeWidth="3"
                   strokeDasharray={i === nodes.length - 2 ? '6 4' : 'none'}
                 />
                 {/* Arrowhead Marker */}
                 <polygon
                   points={`${x2 - 10},${y - 5} ${x2},${y} ${x2 - 10},${y + 5}`}
-                  fill={i === nodes.length - 2 ? 'var(--colors-risk-escalating)' : 'var(--colors-muted-strong)'}
+                  fill={i === nodes.length - 2 ? '#f6465d' : '#fcd535'}
                 />
               </g>
             )
@@ -83,7 +91,7 @@ export default function SessionGraphCard({ session }) {
           {nodes.map((node, i) => {
             const cx = 80 + i * (600 / Math.max(nodes.length - 1, 1))
             const cy = 80
-            const isCritical = node.risk >= 0.75 || i === nodes.length - 1
+            const isHighRisk = node.risk >= 0.80 || i === nodes.length - 1
             const isHovered = hoveredNode === i
 
             return (
@@ -93,15 +101,15 @@ export default function SessionGraphCard({ session }) {
                 onMouseLeave={() => setHoveredNode(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Outer Ring */}
+                {/* Outer Ring with Glow strictly reserved for >80% risk nodes */}
                 <circle
                   cx={cx}
                   cy={cy}
                   r={isHovered ? 24 : 20}
                   fill="var(--colors-surface-card-dark)"
-                  stroke={isCritical ? 'var(--colors-risk-escalating)' : 'var(--colors-primary)'}
-                  strokeWidth={isCritical ? '3' : '2'}
-                  filter={isCritical ? 'url(#nodeGlow)' : 'none'}
+                  stroke={isHighRisk ? 'url(#redNodeGrad)' : 'url(#yellowNodeGrad)'}
+                  strokeWidth={isHighRisk ? '3' : '2'}
+                  filter={isHighRisk ? 'url(#nodeGlowEscalating)' : 'none'}
                   style={{ transition: 'all 0.2s ease' }}
                 />
 
@@ -110,7 +118,7 @@ export default function SessionGraphCard({ session }) {
                   x={cx}
                   y={cy + 5}
                   textAnchor="middle"
-                  fill={isCritical ? 'var(--colors-risk-escalating)' : 'var(--colors-primary)'}
+                  fill={isHighRisk ? '#ff6b7a' : '#ffe066'}
                   fontSize="12"
                   fontWeight="700"
                   fontFamily="Inter, sans-serif"
@@ -151,15 +159,15 @@ export default function SessionGraphCard({ session }) {
                   width="48"
                   height="16"
                   rx="4"
-                  fill={isCritical ? 'rgba(246, 70, 93, 0.2)' : 'rgba(14, 203, 129, 0.2)'}
-                  stroke={isCritical ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)'}
+                  fill={isHighRisk ? 'rgba(246, 70, 93, 0.2)' : 'rgba(14, 203, 129, 0.2)'}
+                  stroke={isHighRisk ? '#f6465d' : '#0ecb81'}
                   strokeWidth="1"
                 />
                 <text
                   x={cx}
                   y={cy + 62}
                   textAnchor="middle"
-                  fill={isCritical ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)'}
+                  fill={isHighRisk ? '#ff6b7a' : '#2effa2'}
                   fontSize="9"
                   fontWeight="700"
                   fontFamily="Inter, sans-serif"
@@ -177,7 +185,7 @@ export default function SessionGraphCard({ session }) {
           <span className="body-sm" style={{ color: 'var(--colors-muted-strong)' }}>
             Hovered Step Details: <strong style={{ color: 'var(--colors-on-dark)' }}>{hoveredNode !== null ? nodes[hoveredNode].label : 'Hover over any node to inspect payload-free metadata'}</strong>
           </span>
-          <span className="number-sm" style={{ color: hoveredNode !== null && nodes[hoveredNode].risk >= 0.75 ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)' }}>
+          <span className="number-sm" style={{ color: hoveredNode !== null && nodes[hoveredNode].risk >= 0.80 ? 'var(--colors-risk-escalating)' : 'var(--colors-risk-contained)' }}>
             {hoveredNode !== null ? `Risk Assessment: ${(nodes[hoveredNode].risk * 100).toFixed(0)}%` : 'Sequence State: Reconstructed'}
           </span>
         </div>
