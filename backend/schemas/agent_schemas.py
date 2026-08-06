@@ -83,16 +83,35 @@ class AgentIngestionResponse(BaseModel):
 
 
 class AgentEnrollRequest(BaseModel):
-    organization_id: str = Field(..., min_length=1, max_length=64)
+    org_id: Optional[str] = Field(None, min_length=1, max_length=64)
+    organization_id: Optional[str] = Field(None, min_length=1, max_length=64)
     enrollment_key: str = Field(..., min_length=1, max_length=64)
     hostname: str = Field(..., min_length=1, max_length=128)
-    device_uuid: Optional[str] = Field(None, max_length=64)
+    device_name: Optional[str] = Field(None, max_length=128)
+    username: Optional[str] = Field(None, max_length=128)
     os: str = Field(..., min_length=1, max_length=64)
+    os_version: Optional[str] = Field(None, max_length=64)
+    architecture: Optional[str] = Field(None, max_length=64)
+    machine_id: str = Field(..., min_length=1, max_length=128)
     agent_version: str = Field(..., min_length=1, max_length=32)
+    device_uuid: Optional[str] = Field(None, max_length=64)
 
 
 class AgentEnrollResponse(BaseModel):
     agent_id: str
     auth_token: str
-    backend_url: str
+    organization_id: Optional[str] = None
+    backend_url: str = "http://localhost:8000"
     heartbeat_interval: int = 30
+
+
+class AgentConfigResponse(BaseModel):
+    organization_id: str
+    agent_id: str
+    machine_id: str
+    watch_scope: str = "targeted"
+    watch_exclude_dirs: List[str] = []
+    poll_interval: float = 5.0
+    heartbeat_interval: int = 30
+    policy: Dict[str, Any] = {}
+
