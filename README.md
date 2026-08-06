@@ -10,7 +10,10 @@ CipherWatch detects insider threat data exfiltration (USB transfers, unauthorize
 
 1. **Endpoint Agent & Scenario Simulator (Metadata-Only):**
    - Monitors filesystem events, USB insertions, process launches, and network connections (`watchdog`, `psutil`).
-   - Includes an agent enrollment flow (`--setup`) with token-based authentication and heartbeats.
+   - Features robust `PermissionError` handling in filesystem monitors to gracefully bypass restricted paths without crashing.
+   - Enforces an organization-scoped agent enrollment flow (`/api/agent/enroll`) with secure bearer token authentication and periodic heartbeats (`/api/heartbeat`).
+   - Asynchronously batches telemetry payloads and flushes them directly to `POST /api/agents/{agent_id}/events`.
+   - Ingests USB events into a dedicated, schema-compliant `usb_events` database table.
    - Includes a synthetic scenario injector CLI (`simulator/main.py`) for reproducible testing.
 2. **Session Correlator & Timeline Visualizer:**
    - Automatically groups raw system events into logical user operational sessions based on configurable idle windows.
@@ -121,9 +124,9 @@ Once enrolled, start the monitoring agent daemon:
 python -m agent.main --backend-url http://localhost:8000 --user-id demo_user
 ```
 The agent will:
-- Establish a background 30s heartbeat with the backend.
-- Monitor events in `./monitored_folder` (creates directory automatically).
-- Stream metadata payloads asynchronously to `POST /api/events`.
+- Establish a background heartbeat with the backend (`POST /api/heartbeat`).
+- Monitor events in `./monitored_folder` (creates directory automatically), process launches, and USB mounts.
+- Stream metadata payloads asynchronously to `POST /api/agents/{agent_id}/events`.
 
 ---
 
