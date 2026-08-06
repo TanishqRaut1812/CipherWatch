@@ -86,20 +86,32 @@ class UserOrganizationModel(Base):
 
 
 class AgentModel(Base):
-    """SQLAlchemy model for enrolled endpoint agents."""
+    """SQLAlchemy model for enrolled endpoint agents (1 Organization -> Many Agents)."""
 
     __tablename__ = "agents"
 
     id = Column(String(64), primary_key=True, index=True)
     org_id = Column(String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    machine_id = Column(String(128), nullable=False, index=True)
     hostname = Column(String(128), nullable=False)
-    device_uuid = Column(String(64), nullable=True)
+    device_name = Column(String(128), nullable=True)
+    username = Column(String(128), nullable=True)
+    device_uuid = Column(String(64), nullable=True)  # Kept for backward compatibility
     os = Column(String(64), nullable=False)
-    ip = Column(String(45), nullable=False)
-    agent_version = Column(String(32), nullable=False)
+    os_version = Column(String(64), nullable=True)
+    architecture = Column(String(64), nullable=True)
+    ip = Column(String(45), nullable=True)
+    agent_version = Column(String(32), nullable=False, default="1.0.0")
+    status = Column(String(32), default="online", nullable=False)
     auth_token_hash = Column(String(256), nullable=False, unique=True, index=True)
     enrolled_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("idx_agents_org_machine", "org_id", "machine_id"),
+    )
 
     organization = relationship("OrganizationModel", back_populates="agents")
     metrics = relationship("MetricsSnapshotModel", back_populates="agent", cascade="all, delete-orphan")
@@ -107,6 +119,10 @@ class AgentModel(Base):
     fs_events = relationship("FSEventModel", back_populates="agent", cascade="all, delete-orphan")
     usb_events = relationship("USBEventModel", back_populates="agent", cascade="all, delete-orphan")
     alerts = relationship("AlertModel", back_populates="agent", cascade="all, delete-orphan")
+
+    @property
+    def organization_id(self) -> str:
+        return self.org_id
 
     def get_status(self, threshold_seconds: int = 90) -> str:
         """Compute agent status dynamically based on last_seen_at."""

@@ -1,0 +1,21 @@
+[Unit]
+Description=CipherWatch Standalone Endpoint Security Agent
+Documentation=https://github.com/TanishqRaut1812/CipherWatch
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cipherwatch-agent --service
+ExecStop=/usr/local/bin/cipherwatch-agent stop
+Restart=always
+RestartSec=5s
+User=root
+WorkingDirectory=/etc/cipherwatch
+StandardOutput=journal+console
+StandardError=journal+console
+KillMode=mixed
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target

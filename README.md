@@ -100,35 +100,69 @@ Open **`http://localhost:5173`** in your browser to view the SOC dashboard.
 
 ---
 
-#### 3. Endpoint Agent Setup & Execution
+#### 3. Standalone Enterprise Linux Endpoint Agent Deployment
 
-The Endpoint Agent runs on client machines to monitor local system metadata events (filesystem changes in `./monitored_folder`, process launches, USB mounts, network connections) and stream them to the backend.
+The CipherWatch Agent is packaged as a **standalone native executable** (built with PyInstaller) that runs as an enterprise Linux endpoint agent without requiring Python, virtual environments, or pip on target endpoints.
 
-##### Step 3.1: Enroll / Register the Agent
-If running in an enterprise workspace, enroll the agent with your organization's backend endpoint:
-
-```bash
-# Interactive setup wizard:
-python -m agent.main --setup --backend-url http://localhost:8000
-
-# Or via non-interactive CLI flags:
-python -m agent.main --setup \
-  --backend-url http://localhost:8000 \
-  --org-id default_org \
-  --enrollment-key demo_key
-```
-This generates `agent_config.json` containing the assigned `agent_id` and authentication token.
-
-##### Step 3.2: Run the Endpoint Agent
-Once enrolled, start the monitoring agent daemon:
+##### 3.1 Building the Standalone Executable
+To compile the standalone agent binary:
 
 ```bash
-python -m agent.main --backend-url http://localhost:8000 --user-id demo_user
+# Single-command build (Generates dist/cipherwatch-agent)
+./build.sh
 ```
-The agent will:
-- Establish a background heartbeat with the backend (`POST /api/heartbeat`).
-- Monitor events in `./monitored_folder` (creates directory automatically), process launches, and USB mounts.
-- Stream metadata payloads asynchronously to `POST /api/agents/{agent_id}/events`.
+
+##### 3.2 Installing the Endpoint Agent
+
+```bash
+# Linux Installation (Systemd service & binary copy to /usr/local/bin)
+cd installer/linux && sudo ./install.sh
+```
+
+##### 3.3 Agent CLI Commands
+
+```bash
+# 1. Interactive Enrollment Setup
+cipherwatch-agent setup --server-url http://localhost:8000 --org-id default_org --enrollment-key demo_key
+
+# 2. Developer Mode (Foreground, verbose console logging, systemd not required)
+cipherwatch-agent dev
+
+# 3. Production Start (Daemon mode with PID locking)
+cipherwatch-agent start
+
+# 4. System Service Control (Production background service)
+sudo systemctl start cipherwatch-agent
+sudo systemctl stop cipherwatch-agent
+
+# 5. Stop Running Agent Gracefully
+cipherwatch-agent stop
+
+# 6. Restart Agent
+cipherwatch-agent restart
+
+# 7. Immediate Synchronization & Health Verification
+cipherwatch-agent sync
+
+# 8. Check Agent & System Status
+cipherwatch-agent status
+
+# 9. View Rotating System Logs
+cipherwatch-agent logs -n 50
+
+# 10. Uninstall Agent (Optional --purge to remove /etc/cipherwatch)
+cipherwatch-agent uninstall --purge
+
+# 11. Print Agent Version & Git Commit
+cipherwatch-agent version
+```
+
+##### 3.4 OS Standard Filesystem Locations
+- **Linux Config/Logs Base:** `/etc/cipherwatch/` (or `~/.config/cipherwatch/`)
+  - Config: `/etc/cipherwatch/config.json`
+  - Logs: `/etc/cipherwatch/logs/cipherwatch.log` (10MB rotating log files)
+  - State: `/etc/cipherwatch/state.json`
+  - Lock File: `/etc/cipherwatch/cipherwatch-agent.pid`
 
 ---
 
@@ -166,4 +200,5 @@ uv run pytest
 CipherWatch operates strictly under enterprise privacy boundaries:
 - 🚫 **NEVER COLLECTED:** File contents, text body, screen renders/pixels, keystrokes, audio, or email bodies.
 - ✅ **METADATA ONLY:** Timestamps, file size (bytes), file extensions, process names/hashes, IP/domains, and USB vendor IDs.
+
 

@@ -271,57 +271,125 @@ def ingest_agent_events(
 
 @root_agent_router.post("/api/agent/enroll", response_model=AgentEnrollResponse, status_code=status.HTTP_201_CREATED)
 def enroll_agent(payload: AgentEnrollRequest, request: Request, db: Session = Depends(get_db)):
-    """Enroll an agent using the new organization credentials (organization_id and enrollment_key)."""
-    # 1. Find organization by organization_id (UUID) or org.id (for compatibility)
+    """Enroll an agent independently per endpoint using organization credentials and stable machine_id."""
+    target_org_id = payload.organization_id or payload.org_id
+    if not target_org_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="organization_id or org_id is required.")
+
+    # 1. Find organization by organization_id (UUID) or org.id (short format)
     org = db.query(OrganizationModel).filter(
-        (OrganizationModel.organization_id == payload.organization_id) | 
-        (OrganizationModel.id == payload.organization_id)
+        (OrganizationModel.organization_id == target_org_id) | 
+        (OrganizationModel.id == target_org_id)
     ).first()
     if not org:
-        logger.warning("Enrollment failed: organization not found for organization_id={}", payload.organization_id)
+        logger.warning("Enrollment failed: organization not found for organization_id={}", target_org_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
         
     # 2. Verify enrollment key
-    # Check both enrollment_key and registration_key to be backward compatible
     if (org.enrollment_key != payload.enrollment_key) and (org.registration_key != payload.enrollment_key):
-        logger.warning("Enrollment failed: invalid enrollment_key for organization_id={}", payload.organization_id)
+        logger.warning("Enrollment failed: invalid enrollment_key for organization_id={}", target_org_id)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid enrollment key.")
-        
-    # 3. Register agent
-    agent_id = f"agent_{uuid.uuid4().hex[:12]}"
+
+    client_ip = request.client.host if request.client else "127.0.0.1"
     raw_token = generate_agent_token()
     token_hash = hash_token(raw_token)
-    
-    # Get client IP
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    
+    now = datetime.utcnow()
+
+    # 3. Check if machine_id already exists under this organization
+    existing_agent = db.query(AgentModel).filter(
+        AgentModel.org_id == org.id,
+        AgentModel.machine_id == payload.machine_id
+    ).first()
+
+    if existing_agent:
+        # Re-enroll existing agent machine: rotate token & update endpoint details
+        existing_agent.auth_token_hash = token_hash
+        existing_agent.hostname = payload.hostname
+        existing_agent.device_name = payload.device_name or payload.hostname
+        existing_agent.username = payload.username
+        existing_agent.os = payload.os
+        existing_agent.os_version = payload.os_version
+        existing_agent.architecture = payload.architecture
+        existing_agent.agent_version = payload.agent_version
+        existing_agent.ip = client_ip
+        existing_agent.last_seen_at = now
+        existing_agent.updated_at = now
+        existing_agent.status = "online"
+        db.commit()
+        db.refresh(existing_agent)
+        
+        logger.info("Agent re-enrolled: id={}, org_id={}, machine_id={}, host={}", existing_agent.id, org.id, payload.machine_id, existing_agent.hostname)
+        backend_url = str(request.base_url).rstrip("/")
+        return AgentEnrollResponse(
+            agent_id=existing_agent.id,
+            auth_token=raw_token,
+            organization_id=org.id,
+            backend_url=backend_url,
+            heartbeat_interval=30
+        )
+
+    # 4. Create new Agent record for new endpoint machine
+    agent_id = f"agent_{uuid.uuid4().hex[:12]}"
     agent = AgentModel(
         id=agent_id,
         org_id=org.id,
+        machine_id=payload.machine_id,
         hostname=payload.hostname,
+        device_name=payload.device_name or payload.hostname,
+        username=payload.username,
         device_uuid=payload.device_uuid,
         os=payload.os,
+        os_version=payload.os_version,
+        architecture=payload.architecture,
         ip=client_ip,
         agent_version=payload.agent_version,
+        status="online",
         auth_token_hash=token_hash,
-        enrolled_at=datetime.utcnow(),
-        last_seen_at=datetime.utcnow(),
+        enrolled_at=now,
+        created_at=now,
+        updated_at=now,
+        last_seen_at=now,
     )
     db.add(agent)
     db.commit()
     db.refresh(agent)
     
-    logger.info("Agent enrolled: id={}, org_id={}, hostname={}, ip={}", agent.id, org.id, agent.hostname, agent.ip)
-    
-    # Determine base backend URL from request
+    logger.info("New agent enrolled: id={}, org_id={}, machine_id={}, host={}", agent.id, org.id, payload.machine_id, agent.hostname)
     backend_url = str(request.base_url).rstrip("/")
-    
     return AgentEnrollResponse(
         agent_id=agent.id,
         auth_token=raw_token,
+        organization_id=org.id,
         backend_url=backend_url,
         heartbeat_interval=30
     )
+
+
+@router.get("/{id}/config")
+def get_agent_config(
+    id: str,
+    agent: AgentModel = Depends(get_current_agent),
+):
+    """Retrieve configuration and policy for an enrolled agent (inherited from organization)."""
+    return {
+        "organization_id": agent.org_id,
+        "agent_id": agent.id,
+        "machine_id": agent.machine_id,
+        "watch_scope": "targeted",
+        "watch_exclude_dirs": [
+            ".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", ".local/share/Trash",
+            ".thumbnails", ".mozilla", ".config/google-chrome", ".config/chromium", "snap", ".DS_Store"
+        ],
+        "poll_interval": 5.0,
+        "heartbeat_interval": 30,
+        "policy": {
+            "organization_id": agent.org_id,
+            "policy_name": "Default Organization Security Policy",
+            "allow_usb_storage": True,
+            "enforce_sensitive_classification": True,
+            "anomalous_risk_threshold": 65.0,
+        }
+    }
 
 
 @root_agent_router.post("/api/heartbeat", response_model=HeartbeatResponse)
@@ -382,14 +450,25 @@ def list_all_agents(
         computed_status = agent.get_status(threshold_seconds=90)
         results.append({
             "id": agent.id,
+            "agent_id": agent.id,
+            "org_id": agent.org_id,
+            "organization_id": agent.org_id,
+            "machine_id": agent.machine_id,
             "hostname": agent.hostname,
+            "device_name": agent.device_name or agent.hostname,
+            "username": agent.username or "system",
             "device_uuid": agent.device_uuid,
             "os": agent.os,
+            "os_version": agent.os_version,
+            "architecture": agent.architecture,
             "ip": agent.ip,
             "agent_version": agent.agent_version,
-            "enrolled_at": agent.enrolled_at,
-            "last_seen_at": agent.last_seen_at,
             "status": computed_status,
+            "is_online": computed_status == "online",
+            "enrolled_at": agent.enrolled_at,
+            "created_at": agent.created_at,
+            "updated_at": agent.updated_at,
+            "last_seen_at": agent.last_seen_at,
         })
     return results
 
