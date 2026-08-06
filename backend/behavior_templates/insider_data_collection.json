@@ -1,0 +1,47 @@
+{
+  "id": "insider_data_collection",
+  "name": "Insider Data Collection",
+  "description": "Sequential off-hours login, broad confidential file search, database export query, and local staging directory creation.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Off-Hours Workstation Access",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["login", "ssh", "rdp", "explorer", "bash", "zsh", "powershell"] },
+      "risk": 15,
+      "confidence": 20,
+      "mitre": { "technique_id": "T1078", "technique_name": "Valid Accounts: Off-Hours Activity" },
+      "prediction": { "action": "Broad Confidential File Search", "probability": 68, "estimated_time_seconds": 300 }
+    },
+    {
+      "stage": 2,
+      "name": "Broad Confidential File Search",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["salary", "hr", "confidential", "finance", "q4", "patent", "roadmap"] },
+      "risk": 40,
+      "confidence": 48,
+      "mitre": { "technique_id": "T1083", "technique_name": "File and Directory Discovery" },
+      "prediction": { "action": "Database Query / Export Attempt", "probability": 79, "estimated_time_seconds": 180 }
+    },
+    {
+      "stage": 3,
+      "name": "Database Query / Export Attempt",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["select *", "mysqldump", "pg_dump", "mongoexport", "sqlite3", "dbeaver"] },
+      "risk": 65,
+      "confidence": 72,
+      "mitre": { "technique_id": "T1213", "technique_name": "Data from Information Repositories" },
+      "prediction": { "action": "Staging Directory Payload Assembly", "probability": 87, "estimated_time_seconds": 120 }
+    },
+    {
+      "stage": 4,
+      "name": "Staging Directory Payload Assembly",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["temp_collection", "to_transfer", "staged", "dump", "export_folder"] },
+      "risk": 82,
+      "confidence": 90,
+      "mitre": { "technique_id": "T1074.001", "technique_name": "Data Staged: Local Data Staging" },
+      "prediction": { "action": "Exfiltration Readiness Complete", "probability": 96, "estimated_time_seconds": 60 }
+    }
+  ]
+}

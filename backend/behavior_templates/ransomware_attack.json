@@ -1,0 +1,47 @@
+{
+  "id": "ransomware_attack",
+  "name": "Ransomware Attack Chain",
+  "description": "Sequential execution of unverified binaries, Volume Shadow Copy destruction, rapid filesystem encryption burst, and ransom note drop.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Unverified Binary Spawning",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["cmd.exe", "powershell", "wscript", "cscript", "mshta", "bitsadmin", "/tmp/"] },
+      "risk": 25,
+      "confidence": 30,
+      "mitre": { "technique_id": "T1059", "technique_name": "Command and Scripting Interpreter" },
+      "prediction": { "action": "Volume Shadow Copy Destruction", "probability": 80, "estimated_time_seconds": 90 }
+    },
+    {
+      "stage": 2,
+      "name": "Volume Shadow Copy Destruction",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["vssadmin delete shadows", "wmic shadowcopy delete", "bcdedit /set", "wbadmin delete catalog"] },
+      "risk": 65,
+      "confidence": 72,
+      "mitre": { "technique_id": "T1490", "technique_name": "Inhibit System Recovery" },
+      "prediction": { "action": "Rapid Mass Filesystem Encryption", "probability": 93, "estimated_time_seconds": 60 }
+    },
+    {
+      "stage": 3,
+      "name": "Rapid Mass Filesystem Encryption",
+      "event_type": "fs_event",
+      "matcher": { "event_type": ["modified", "deleted"], "extension": [".locked", ".crypto", ".enc", ".crypted", ".cipher"] },
+      "risk": 90,
+      "confidence": 94,
+      "mitre": { "technique_id": "T1486", "technique_name": "Data Encrypted for Impact" },
+      "prediction": { "action": "Ransom Note Generation", "probability": 98, "estimated_time_seconds": 30 }
+    },
+    {
+      "stage": 4,
+      "name": "Ransom Note Generation",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["readme_decrypt", "how_to_decrypt", "ransom", "recover_files", "read_me.txt", "decrypt_instructions"] },
+      "risk": 99,
+      "confidence": 99,
+      "mitre": { "technique_id": "T1491", "technique_name": "Defacement / Ransom Demand" },
+      "prediction": { "action": "Attack Sequence Complete", "probability": 100, "estimated_time_seconds": 0 }
+    }
+  ]
+}

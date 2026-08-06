@@ -1,0 +1,47 @@
+{
+  "id": "suspicious_reconnaissance",
+  "name": "Suspicious Reconnaissance & Discovery",
+  "description": "Sequential network scanning, local user enumeration, active directory share discovery, and privilege mapping.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Network Scanner Execution",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["nmap", "masscan", "zmap", "angryip", "ping sweep", "arp -a", "netstat"] },
+      "risk": 15,
+      "confidence": 22,
+      "mitre": { "technique_id": "T1046", "technique_name": "Network Service Discovery" },
+      "prediction": { "action": "Local & Domain User Enumeration", "probability": 70, "estimated_time_seconds": 300 }
+    },
+    {
+      "stage": 2,
+      "name": "Local & Domain User Enumeration",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["net user", "net group", "whoami /all", "id", "get-aduser", "dsquery"] },
+      "risk": 35,
+      "confidence": 45,
+      "mitre": { "technique_id": "T1087", "technique_name": "Account Discovery" },
+      "prediction": { "action": "Network Share & Storage Discovery", "probability": 82, "estimated_time_seconds": 180 }
+    },
+    {
+      "stage": 3,
+      "name": "Network Share & Storage Discovery",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["net share", "net view", "smbclient", "showmount", "df -h", "mount"] },
+      "risk": 55,
+      "confidence": 65,
+      "mitre": { "technique_id": "T1135", "technique_name": "Network Share Discovery" },
+      "prediction": { "action": "Privilege & Trust Mapping", "probability": 89, "estimated_time_seconds": 120 }
+    },
+    {
+      "stage": 4,
+      "name": "Privilege & Trust Mapping",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["bloodhound", "sharphound", "seatbelt", "winpeas", "linpeas", "enum4linux"] },
+      "risk": 80,
+      "confidence": 88,
+      "mitre": { "technique_id": "T1482", "technique_name": "Domain Trust Discovery" },
+      "prediction": { "action": "Reconnaissance Phase Complete", "probability": 95, "estimated_time_seconds": 60 }
+    }
+  ]
+}

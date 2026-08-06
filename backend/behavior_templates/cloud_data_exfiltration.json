@@ -1,0 +1,57 @@
+{
+  "id": "cloud_data_exfiltration",
+  "name": "Cloud Data Exfiltration",
+  "description": "Sequential cloud storage access, mass file staging, encrypted archive creation, high egress network transfer, and session termination.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "Cloud Storage Portal Access",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["rclone", "aws", "az", "gsutil", "mega", "dropbox", "gdrive", "onedrive"] },
+      "risk": 20,
+      "confidence": 25,
+      "mitre": { "technique_id": "T1567", "technique_name": "Exfiltration to Cloud Storage" },
+      "prediction": { "action": "Mass Sensitive Data Query", "probability": 72, "estimated_time_seconds": 240 }
+    },
+    {
+      "stage": 2,
+      "name": "Mass Sensitive Data Query",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["s3", "blob", "bucket", "database", "exports", "prod", "users", "keys"] },
+      "risk": 45,
+      "confidence": 50,
+      "mitre": { "technique_id": "T1530", "technique_name": "Data from Cloud Storage Object" },
+      "prediction": { "action": "Encrypted Staging Archive", "probability": 81, "estimated_time_seconds": 150 }
+    },
+    {
+      "stage": 3,
+      "name": "Encrypted Staging Archive",
+      "event_type": "fs_event",
+      "matcher": { "event_type": ["created", "modified"], "extension": [".zip", ".tar.gz", ".7z", ".enc"] },
+      "risk": 70,
+      "confidence": 75,
+      "mitre": { "technique_id": "T1560.001", "technique_name": "Archive via Utility with Encryption" },
+      "prediction": { "action": "High-Volume Cloud Egress", "probability": 88, "estimated_time_seconds": 90 }
+    },
+    {
+      "stage": 4,
+      "name": "High-Volume Cloud Egress",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["upload", "sync", "push", "put", "curl -F", "scp", "sftp"] },
+      "risk": 90,
+      "confidence": 92,
+      "mitre": { "technique_id": "T1048", "technique_name": "Exfiltration Over Alternative Protocol" },
+      "prediction": { "action": "Cloud Session Disconnect & Wipe", "probability": 97, "estimated_time_seconds": 30 }
+    },
+    {
+      "stage": 5,
+      "name": "Cloud Session Disconnect & Wipe",
+      "event_type": "process_event",
+      "matcher": { "cmdline_keywords": ["logout", "revoke", "shred", "rm -rf", "delete"] },
+      "risk": 98,
+      "confidence": 99,
+      "mitre": { "technique_id": "T1070", "technique_name": "Indicator Removal on Host" },
+      "prediction": { "action": "Attack Sequence Complete", "probability": 100, "estimated_time_seconds": 0 }
+    }
+  ]
+}

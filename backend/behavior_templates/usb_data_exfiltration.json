@@ -1,0 +1,57 @@
+{
+  "id": "usb_data_exfiltration",
+  "name": "USB Data Exfiltration",
+  "description": "Sequential physical exfiltration chain from USB attachment, sensitive folder access, archive creation, USB write, to device removal.",
+  "stages": [
+    {
+      "stage": 1,
+      "name": "USB Storage Connected",
+      "event_type": "usb_event",
+      "matcher": { "action": ["connected", "mount", "attached"] },
+      "risk": 15,
+      "confidence": 18,
+      "mitre": { "technique_id": "T1091", "technique_name": "Replication Through Removable Media" },
+      "prediction": { "action": "Sensitive Folder Access", "probability": 75, "estimated_time_seconds": 180 }
+    },
+    {
+      "stage": 2,
+      "name": "Sensitive Folder Access",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["confidential", "secret", "financial", "private", "personal", "documents", "backup", "db"] },
+      "risk": 35,
+      "confidence": 42,
+      "mitre": { "technique_id": "T1005", "technique_name": "Data from Local System" },
+      "prediction": { "action": "Staged Archive Creation", "probability": 84, "estimated_time_seconds": 120 }
+    },
+    {
+      "stage": 3,
+      "name": "Staged Archive Creation",
+      "event_type": "fs_event",
+      "matcher": { "event_type": ["created", "modified"], "extension": [".zip", ".tar", ".gz", ".7z", ".rar", ".iso"] },
+      "risk": 60,
+      "confidence": 68,
+      "mitre": { "technique_id": "T1560", "technique_name": "Archive Collected Data" },
+      "prediction": { "action": "USB Mass Data Write", "probability": 91, "estimated_time_seconds": 90 }
+    },
+    {
+      "stage": 4,
+      "name": "USB Mass Data Write",
+      "event_type": "fs_event",
+      "matcher": { "path_keywords": ["media", "usb", "mnt", "drive", "removable", "e:", "f:", "g:", "sandisk", "kingston"] },
+      "risk": 85,
+      "confidence": 89,
+      "mitre": { "technique_id": "T1041", "technique_name": "Exfiltration Over Physical Media" },
+      "prediction": { "action": "USB Device Disconnection", "probability": 96, "estimated_time_seconds": 60 }
+    },
+    {
+      "stage": 5,
+      "name": "USB Device Disconnection",
+      "event_type": "usb_event",
+      "matcher": { "action": ["disconnected", "unmount", "removed"] },
+      "risk": 95,
+      "confidence": 98,
+      "mitre": { "technique_id": "T1091", "technique_name": "Removable Media Air-gap Breach Complete" },
+      "prediction": { "action": "Attack Sequence Complete", "probability": 100, "estimated_time_seconds": 0 }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis
 import NotificationCenter from './NotificationCenter'
 import UserDetailDashboard from './UserDetailDashboard'
 import OrganizationSwitchModal from './OrganizationSwitchModal'
+import PredictiveBehaviorWidget from './PredictiveBehaviorWidget'
 
 export default function OrganizationDashboard({ org, onBackToAdmin, currentUser, onLogout, onSwitchOrg, onSelectUser, organizations, onSelectOrg }) {
   const [selectedUser, setSelectedUser] = useState(null)
@@ -542,6 +543,13 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
             </button>
           </div>
         </div>
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* PREDICTIVE BEHAVIOR DETECTION ENGINE WIDGET                   */}
+      {/* ------------------------------------------------------------- */}
+      <section style={{ padding: '0 28px 16px 28px' }}>
+        <PredictiveBehaviorWidget orgId={currentOrg.id} />
       </section>
 
       {/* ------------------------------------------------------------- */}

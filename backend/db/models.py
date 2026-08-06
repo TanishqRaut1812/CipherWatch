@@ -327,5 +327,40 @@ class UserBaselineModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class BehavioralSessionModel(Base):
+    """SQLAlchemy model for Predictive Behavior Detection Engine sessions."""
+
+    __tablename__ = "behavioral_sessions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_id = Column(String(64), unique=True, index=True, nullable=False)
+    org_id = Column(String(64), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True)
+    agent_id = Column(String(64), ForeignKey("agents.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id = Column(String(64), index=True, nullable=False)
+    device_id = Column(String(64), nullable=False, default="unknown_device")
+    template_id = Column(String(64), nullable=False)
+    template_name = Column(String(128), nullable=False)
+    current_stage = Column(Integer, default=1, nullable=False)
+    total_stages = Column(Integer, default=5, nullable=False)
+    risk_score = Column(Float, default=0.0, nullable=False)
+    confidence_score = Column(Float, default=0.0, nullable=False)
+    predicted_next_action = Column(String(256), nullable=True)
+    predicted_probability = Column(Float, default=0.0, nullable=False)
+    estimated_time_seconds = Column(Integer, default=120, nullable=False)
+    current_mitre_technique = Column(String(64), nullable=True)
+    mitre_techniques_json = Column(JSONEncodedDict, nullable=False, default=[])
+    recent_events_json = Column(JSONEncodedDict, nullable=False, default=[])
+    status = Column(String(32), default="active", nullable=False)  # active | completed | expired
+    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_activity = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    closed_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("idx_behav_sessions_agent_status", "agent_id", "status"),
+        Index("idx_behav_sessions_org_status", "org_id", "status"),
+    )
+
+
+
 
 
