@@ -233,6 +233,9 @@ def ingest_agent_events(
         raw_eval_data.append({
             "event_id": event_id,
             "event_type": str(event_type),
+            "metadata": meta,
+        })
+
     db.commit()
 
     # Process all events through the Predictive Behavior Engine FSM

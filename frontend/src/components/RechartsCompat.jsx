@@ -58,7 +58,7 @@ export const PieChart = ({ children }) => {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%', maxHeight: '140px' }}>
+      <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
         {slices.map((slice) => {
           if (slice.percentage >= 0.999) {
             return (
@@ -149,16 +149,16 @@ export const BarChart = ({ data, margin, children }) => {
     }
   });
 
-  const values = data.map(d => d[barKey] || d.threats || d.events || 0);
-  const maxVal = Math.max(...values, 100);
+  const values = data.map(d => d[barKey] !== undefined ? d[barKey] : (d.threats !== undefined ? d.threats : d.events || 0));
+  const maxVal = Math.max(...values, 10);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', position: 'relative' }}>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px', paddingBottom: '20px' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px', paddingBottom: '12px' }}>
         {data.map((item, idx) => {
-          const val = item[barKey] || item.threats || item.events || 0;
-          const heightPct = Math.min(100, Math.max(12, (val / maxVal) * 100));
-          const color = cells[idx]?.fill || (val >= 90 ? '#f6465d' : val >= 60 ? '#fcd535' : '#0ecb81');
+          const val = item[barKey] !== undefined ? item[barKey] : (item.threats !== undefined ? item.threats : item.events || 0);
+          const heightPct = Math.min(100, Math.max(10, (val / maxVal) * 100));
+          const color = cells[idx]?.fill || (val >= 70 ? '#f6465d' : val >= 40 ? '#fcd535' : '#0ecb81');
           const isHovered = hoveredIdx === idx;
 
           return (
@@ -171,8 +171,8 @@ export const BarChart = ({ data, margin, children }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
+                justifyContent: 'flex-end',
                 height: '100%',
-                justify: 'flex-end',
                 cursor: 'pointer',
                 position: 'relative',
               }}
@@ -181,35 +181,38 @@ export const BarChart = ({ data, margin, children }) => {
                 <div
                   style={{
                     position: 'absolute',
-                    top: '-28px',
+                    top: '-32px',
                     backgroundColor: '#070a12',
                     border: `1px solid ${color}`,
-                    borderRadius: '4px',
-                    padding: '2px 6px',
-                    fontSize: '10px',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
                     color: '#ffffff',
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-                    zIndex: 10,
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.6)',
+                    zIndex: 20,
                   }}
                 >
-                  {item.time || `T-${idx}`}: <strong>{val}</strong>
+                  {item.time || item.name || `T-${idx}`}: <strong>{val}</strong>
                 </div>
               )}
-              <div
-                style={{
-                  width: '80%',
-                  maxWidth: '28px',
-                  height: `${heightPct}%`,
-                  backgroundColor: color,
-                  borderRadius: '4px 4px 0 0',
-                  boxShadow: isHovered ? `0 0 12px ${color}` : `0 0 6px ${color}40`,
-                  transition: 'all 0.2s ease',
-                  opacity: isHovered ? 1 : 0.85,
-                }}
-              />
-              <span style={{ fontSize: '10px', color: '#64748b', marginTop: '6px', fontWeight: '600' }}>
-                {item.time || ''}
+              {/* Bar Outer Column Container */}
+              <div style={{ width: '100%', flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <div
+                  style={{
+                    width: '80%',
+                    maxWidth: '36px',
+                    height: `${heightPct}%`,
+                    backgroundColor: color,
+                    borderRadius: '6px 6px 0 0',
+                    boxShadow: isHovered ? `0 0 16px ${color}` : `0 0 8px ${color}40`,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    opacity: isHovered ? 1 : 0.88,
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px', fontWeight: '700' }}>
+                {item.time || item.name || ''}
               </span>
             </div>
           );

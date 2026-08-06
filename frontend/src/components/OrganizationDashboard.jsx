@@ -232,15 +232,15 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
     })
   }, [users, sortBy])
 
-  // OS Icon Helper
+  // OS Icon Helper (No emojis - Clean Badges)
   const renderOSIcon = (osType) => {
     if (osType === 'windows') {
-      return <span style={{ fontSize: '15px' }}>🪟</span>
+      return <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#1e293b', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px' }}>WIN</span>
     }
     if (osType === 'macos') {
-      return <span style={{ fontSize: '15px' }}>🍎</span>
+      return <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#1e293b', color: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>MAC</span>
     }
-    return <span style={{ fontSize: '15px' }}>🐧</span>
+    return <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#1e293b', color: '#fcd535', padding: '2px 6px', borderRadius: '4px' }}>LNX</span>
   }
 
   if (selectedUser) {
@@ -410,7 +410,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
               background: 'rgba(252, 213, 53, 0.1)',
               border: '1px solid rgba(252, 213, 53, 0.3)',
               color: '#fcd535',
-              padding: '6px 12px',
+              padding: '6px 14px',
               borderRadius: '8px',
               fontSize: '12px',
               cursor: 'pointer',
@@ -420,7 +420,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
               gap: '6px',
             }}
           >
-            🏢 Switch Org
+            <Building size={13} /> Switch Org
           </button>
 
           {onLogout && (
@@ -444,105 +444,142 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
       </header>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. ORGANIZATION IDENTITY PANEL (RESTING GOLD GLOW)           */}
+      {/* 2. ORGANIZATION IDENTITY PANEL (DYNAMIC RISK GLOW)            */}
       {/* ------------------------------------------------------------- */}
       <section style={{ padding: '24px 28px 12px 28px' }}>
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #161c2e 0%, #0d1322 100%)',
-            border: '1px solid rgba(252, 213, 53, 0.35)',
-            boxShadow: '0 0 20px rgba(252, 213, 53, 0.15), inset 0 0 10px rgba(252, 213, 53, 0.05)',
-            borderRadius: '14px',
-            padding: '24px 32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Left: Organization Name */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
+        {(() => {
+          const score = currentOrg.riskScore ?? 0
+          const isRed = score >= 70
+          const isYellow = score >= 40 && score < 70
+          const isGreen = score < 40
+
+          const colorTheme = isRed ? '#f6465d' : isYellow ? '#fcd535' : '#0ecb81'
+          const bgGradient = isRed
+            ? 'linear-gradient(135deg, #1b0a10 0%, #120609 100%)'
+            : isYellow
+            ? 'linear-gradient(135deg, #1f1b0a 0%, #141106 100%)'
+            : 'linear-gradient(135deg, #091a14 0%, #05110d 100%)'
+          const borderColor = isRed
+            ? '1px solid rgba(246, 70, 93, 0.45)'
+            : isYellow
+            ? '1px solid rgba(252, 213, 53, 0.45)'
+            : '1px solid rgba(14, 203, 129, 0.45)'
+          const shadowGlow = isRed
+            ? '0 0 25px rgba(246, 70, 93, 0.25)'
+            : isYellow
+            ? '0 0 25px rgba(252, 213, 53, 0.25)'
+            : '0 0 25px rgba(14, 203, 129, 0.25)'
+          const badgeText = isRed
+            ? 'CRITICAL SECURITY THREAT WORKSPACE'
+            : isYellow
+            ? 'MANAGED ORGANIZATION WORKSPACE'
+            : 'OPTIMAL SECURITY BASELINE WORKSPACE'
+
+          return (
             <div
               style={{
-                fontSize: '11px',
-                fontWeight: '800',
-                color: '#fcd535',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                marginBottom: '6px',
+                background: bgGradient,
+                border: borderColor,
+                boxShadow: shadowGlow,
+                borderRadius: '14px',
+                padding: '24px 32px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.4s ease',
               }}
             >
-              <Building size={14} color="#fcd535" />
-              <span>MANAGED ORGANIZATION WORKSPACE</span>
-            </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: '28px',
-                fontWeight: '800',
-                color: '#ffffff',
-                letterSpacing: '-0.5px',
-              }}
-            >
-              {currentOrg.name}
-            </h1>
-          </div>
+              {/* Left: Organization Name */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    color: colorTheme,
+                    letterSpacing: '1.5px',
+                    textTransform: 'uppercase',
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <Building size={14} color={colorTheme} />
+                  <span>{badgeText}</span>
+                </div>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: '28px',
+                    fontWeight: '800',
+                    color: '#ffffff',
+                    letterSpacing: '-0.5px',
+                  }}
+                >
+                  {currentOrg.name}
+                </h1>
+              </div>
 
-          {/* Center: Numeric Risk Score in Tabular Figures */}
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '700', letterSpacing: '1px' }}>
-              Aggregate Threat Risk Score
-            </div>
-            <div
-              style={{
-                fontSize: '44px',
-                fontWeight: '900',
-                color: '#fcd535',
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-1px',
-                textShadow: '0 0 20px rgba(252, 213, 53, 0.4)',
-                marginTop: '2px',
-              }}
-            >
-              {currentOrg.riskScore || 78}%
-            </div>
-          </div>
+              {/* Center: Numeric Risk Score in Tabular Figures */}
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '700', letterSpacing: '1px' }}>
+                  Aggregate Threat Risk Score
+                </div>
+                <div
+                  style={{
+                    fontSize: '44px',
+                    fontWeight: '900',
+                    color: colorTheme,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-1px',
+                    textShadow: `0 0 20px ${colorTheme}80`,
+                    marginTop: '2px',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  {score}%
+                </div>
+              </div>
 
-          {/* Right: Action Button */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <button
-              onClick={() => setActionNotice(`Updated Security Policy & Telemetry Filters for ${currentOrg.name}`)}
-              style={{
-                background: 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)',
-                color: '#070a12',
-                border: 'none',
-                padding: '14px 28px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '800',
-                letterSpacing: '0.5px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(252, 213, 53, 0.35)',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                outline: 'none',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(252, 213, 53, 0.55)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(252, 213, 53, 0.35)'
-              }}
-            >
-              Configure Policy &rarr;
-            </button>
-          </div>
-        </div>
+              {/* Right: Action Button */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <button
+                  onClick={() => setActionNotice(`Updated Security Policy & Telemetry Filters for ${currentOrg.name}`)}
+                  style={{
+                    background: isRed
+                      ? 'linear-gradient(135deg, #f6465d 0%, #d9263e 100%)'
+                      : isYellow
+                      ? 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)'
+                      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: isYellow ? '#070a12' : '#ffffff',
+                    border: 'none',
+                    padding: '14px 28px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 20px ${colorTheme}50`,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    outline: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = `0 8px 30px ${colorTheme}80`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = `0 4px 20px ${colorTheme}50`
+                  }}
+                >
+                  Configure Policy &rarr;
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </section>
 
       {/* ------------------------------------------------------------- */}
@@ -883,193 +920,234 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
 
           {/* Scrollable User Row-Cards List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '560px', paddingRight: '4px' }}>
-            {sortedUsers.map((user) => {
-              const isHigh = user.riskScore >= 70
-              const isDropdownOpen = openDropdownId === user.id
-
-              return (
+            {sortedUsers.length === 0 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--colors-canvas-dark)',
+                  border: '1px dashed var(--colors-hairline-on-dark)',
+                  borderRadius: '10px',
+                  margin: 'auto 0',
+                }}
+              >
                 <div
-                  key={user.id}
-                  onClick={() => {
-                    if (onSelectUser) onSelectUser(user)
-                    else setSelectedUser(user)
-                  }}
                   style={{
-                    backgroundColor: 'var(--colors-canvas-dark)',
-                    border: '1px solid var(--colors-hairline-on-dark)',
-                    borderRadius: '10px',
-                    padding: '16px 20px',
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(252, 213, 53, 0.1)',
+                    border: '1px solid rgba(252, 213, 53, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.25s ease',
-                    position: 'relative',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(252, 213, 53, 0.4)'
-                    e.currentTarget.style.backgroundColor = 'var(--colors-surface-card-dark)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)'
-                    e.currentTarget.style.backgroundColor = 'var(--colors-canvas-dark)'
+                    justifyContent: 'center',
+                    color: '#fcd535',
+                    marginBottom: '14px',
                   }}
                 >
-                  {/* Left: User Avatar & Info */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        backgroundColor: isHigh ? 'rgba(246, 70, 93, 0.12)' : 'rgba(252, 213, 53, 0.12)',
-                        border: `1px solid ${isHigh ? 'rgba(246, 70, 93, 0.3)' : 'rgba(252, 213, 53, 0.3)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: isHigh ? '#f6465d' : '#fcd535',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                      }}
-                    >
-                      {user.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#f1f5f9' }}>
-                        {user.name}
-                      </h3>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                        {user.email} • <span style={{ color: '#cbd5e1' }}>{user.os}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <User size={22} />
+                </div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '700', color: '#f8fafc' }}>
+                  No Enrolled Fleet Users
+                </h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#64748b', maxWidth: '320px', lineHeight: '1.5' }}>
+                  Run the agent setup command below on an endpoint to enroll a device to this organization workspace.
+                </p>
+              </div>
+            ) : (
+              sortedUsers.map((user) => {
+                const isHigh = user.riskScore >= 70
+                const isDropdownOpen = openDropdownId === user.id
 
-                  {/* Right: Risk Badge & Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {/* Risk Badge */}
-                    <div style={{ textAlign: 'right' }}>
+                return (
+                  <div
+                    key={user.id}
+                    onClick={() => {
+                      if (onSelectUser) onSelectUser(user)
+                      else setSelectedUser(user)
+                    }}
+                    style={{
+                      backgroundColor: 'var(--colors-canvas-dark)',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '10px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.25s ease',
+                      position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(252, 213, 53, 0.4)'
+                      e.currentTarget.style.backgroundColor = 'var(--colors-surface-card-dark)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)'
+                      e.currentTarget.style.backgroundColor = 'var(--colors-canvas-dark)'
+                    }}
+                  >
+                    {/* Left: User Avatar & Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
                         style={{
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          color: isHigh ? '#f6465d' : '#0ecb81',
-                        }}
-                      >
-                        {user.riskScore}%
-                      </div>
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>
-                        Risk Score
-                      </span>
-                    </div>
-
-                    {/* Action Dropdown Trigger */}
-                    <div style={{ position: 'relative' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpenDropdownId(isDropdownOpen ? null : user.id)
-                        }}
-                        style={{
-                          background: isDropdownOpen ? 'var(--colors-hairline-on-dark)' : 'transparent',
-                          border: 'none',
-                          color: '#94a3b8',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          backgroundColor: isHigh ? 'rgba(246, 70, 93, 0.12)' : 'rgba(252, 213, 53, 0.12)',
+                          border: `1px solid ${isHigh ? 'rgba(246, 70, 93, 0.3)' : 'rgba(252, 213, 53, 0.3)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '16px',
-                          fontWeight: '700',
+                          color: isHigh ? '#f6465d' : '#fcd535',
+                          fontWeight: '800',
+                          fontSize: '14px',
                         }}
                       >
-                        •••
-                      </button>
+                        {user.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#f1f5f9' }}>
+                          {user.name}
+                        </h3>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          {user.email} • <span style={{ color: '#cbd5e1' }}>{user.os}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                      {/* Dropdown Menu */}
-                      {isDropdownOpen && (
+                    {/* Right: Risk Badge & Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      {/* Risk Badge */}
+                      <div style={{ textAlign: 'right' }}>
                         <div
                           style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: '36px',
-                            backgroundColor: 'var(--colors-surface-card-dark)',
-                            border: '1px solid var(--colors-hairline-on-dark)',
-                            borderRadius: '8px',
-                            padding: '4px',
-                            width: '140px',
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                            zIndex: 100,
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            color: isHigh ? '#f6465d' : '#0ecb81',
                           }}
-                          onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Rename Action */}
-                          <button
-                            onClick={(e) => handleRenameUser(user.id, user.name, e)}
-                            style={{
-                              width: '100%',
-                              background: 'none',
-                              border: 'none',
-                              color: '#cbd5e1',
-                              padding: '8px 12px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              textAlign: 'left',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--colors-hairline-on-dark)'
-                              e.currentTarget.style.color = '#fcd535'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                              e.currentTarget.style.color = '#cbd5e1'
-                            }}
-                          >
-                            <Edit3 size={14} /> Rename
-                          </button>
-
-                          {/* Delete Action */}
-                          <button
-                            onClick={(e) => handleDeleteUser(user.id, e)}
-                            style={{
-                              width: '100%',
-                              background: 'none',
-                              border: 'none',
-                              color: '#f6465d',
-                              padding: '8px 12px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              textAlign: 'left',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.15)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                            }}
-                          >
-                            <Trash2 size={14} /> Delete
-                          </button>
+                          {user.riskScore}%
                         </div>
-                      )}
+                        <span style={{ fontSize: '10px', color: '#64748b' }}>
+                          Risk Score
+                        </span>
+                      </div>
+
+                      {/* Action Dropdown Trigger */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenDropdownId(isDropdownOpen ? null : user.id)
+                          }}
+                          style={{
+                            background: isDropdownOpen ? 'var(--colors-hairline-on-dark)' : 'transparent',
+                            border: 'none',
+                            color: '#94a3b8',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#fcd535')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                        >
+                          •••
+                        </button>
+
+                        {/* Dropdown Card */}
+                        {isDropdownOpen && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '36px',
+                              backgroundColor: 'var(--colors-surface-card-dark)',
+                              border: '1px solid var(--colors-hairline-on-dark)',
+                              borderRadius: '8px',
+                              padding: '6px',
+                              width: '130px',
+                              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+                              zIndex: 50,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => {
+                                setOpenDropdownId(null)
+                                if (onSelectUser) onSelectUser(user)
+                                else setSelectedUser(user)
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '6px 10px',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                color: '#f8fafc',
+                                fontSize: '12px',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                textAlign: 'left',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(252, 213, 53, 0.15)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                              }}
+                            >
+                              <Edit3 size={14} /> View Details
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenDropdownId(null)
+                                setUsers(users.filter(u => u.id !== user.id))
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '6px 10px',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                color: '#f6465d',
+                                fontSize: '12px',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                textAlign: 'left',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.15)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                              }}
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </section>
 
@@ -1097,56 +1175,82 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', height: '160px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', minHeight: '240px', padding: '10px 0' }}>
               {/* Recharts Donut/Pie Chart */}
-              <div style={{ width: 140, height: 140 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
-                    />
-                    <Pie
-                      data={[
-                        { name: 'High Risk', value: users.filter(u => u.riskScore >= 70).length || 1, color: '#f6465d' },
-                        { name: 'Moderate Risk', value: users.filter(u => u.riskScore >= 40 && u.riskScore < 70).length || 2, color: '#fcd535' },
-                        { name: 'Compliant', value: users.filter(u => u.riskScore < 40).length || 1, color: '#0ecb81' },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={32}
-                      outerRadius={58}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
-                        <Cell key={`cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {(() => {
+                if (users.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '24px', textAlign: 'center' }}>
+                      <Activity size={32} color="#64748b" style={{ marginBottom: '12px' }} />
+                      <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>
+                        No Risk Telemetry Available
+                      </h5>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        Enroll endpoints to calculate real-time fleet risk distribution.
+                      </span>
+                    </div>
+                  )
+                }
 
-              {/* Pie Chart Legend */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 6px #f6465d' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>
-                    High Risk ({users.filter(u => u.riskScore >= 70).length || 1})
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 6px #fcd535' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>
-                    Moderate Risk ({users.filter(u => u.riskScore >= 40 && u.riskScore < 70).length || 2})
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 6px #0ecb81' }} />
-                  <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>
-                    Compliant ({users.filter(u => u.riskScore < 40).length || 1})
-                  </span>
-                </div>
-              </div>
+                const highRisk = users.filter(u => u.riskScore >= 70).length
+                const modRisk = users.filter(u => u.riskScore >= 40 && u.riskScore < 70).length
+                const compliant = Math.max(0, users.length - (highRisk + modRisk))
+
+                const pieData = [
+                  { name: 'High Risk', value: highRisk, color: '#f6465d' },
+                  { name: 'Moderate Risk', value: modRisk, color: '#fcd535' },
+                  { name: 'Compliant', value: compliant, color: '#0ecb81' },
+                ]
+
+                return (
+                  <>
+                    <div style={{ width: 220, height: 220 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                          />
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={48}
+                            outerRadius={95}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
+                              <Cell key={`cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Pie Chart Legend */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 8px #f6465d' }} />
+                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                          High Risk ({highRisk})
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 8px #fcd535' }} />
+                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                          Moderate Risk ({modRisk})
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 8px #0ecb81' }} />
+                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                          Compliant ({compliant})
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </section>
 
@@ -1170,31 +1274,52 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
             </div>
 
             {/* Recharts Bar Chart */}
-            <div style={{ height: '160px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { time: '00:00', events: 20 },
-                    { time: '04:00', events: 35 },
-                    { time: '08:00', events: 80 },
-                    { time: '12:00', events: 95 },
-                    { time: '16:00', events: 65 },
-                    { time: '20:00', events: 40 },
-                  ]}
-                  margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                >
-                  <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="events" fill="#fcd535" radius={[4, 4, 0, 0]}>
-                    {[20, 35, 80, 95, 65, 40].map((val, idx) => (
-                      <Cell key={`bar-${idx}`} fill={val >= 90 ? '#f6465d' : val >= 65 ? '#fcd535' : '#0ecb81'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div style={{ height: '240px', width: '100%' }}>
+              {(() => {
+                if (users.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+                      <Activity size={32} color="#64748b" style={{ marginBottom: '12px' }} />
+                      <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>
+                        No Event Density Telemetry
+                      </h5>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        Hourly event trends will populate automatically as endpoint agents log system events.
+                      </span>
+                    </div>
+                  )
+                }
+
+                const totalUserEvents = users.reduce((sum, u) => sum + (u.eventsCount || 0), 0)
+                const userBarData = [
+                  { time: '00:00', events: Math.round(totalUserEvents * 0.10) },
+                  { time: '04:00', events: Math.round(totalUserEvents * 0.20) },
+                  { time: '08:00', events: Math.round(totalUserEvents * 0.70) },
+                  { time: '12:00', events: Math.round(totalUserEvents * 0.95) },
+                  { time: '16:00', events: Math.round(totalUserEvents * 0.60) },
+                  { time: '20:00', events: Math.round(totalUserEvents * 0.35) },
+                ]
+
+                return (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={userBarData}
+                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                    >
+                      <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
+                      />
+                      <Bar dataKey="events" fill="#fcd535" radius={[4, 4, 0, 0]}>
+                        {userBarData.map((d, idx) => (
+                          <Cell key={`bar-${idx}`} fill={d.events >= 70 ? '#f6465d' : d.events >= 40 ? '#fcd535' : '#0ecb81'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )
+              })()}
             </div>
           </section>
         </div>

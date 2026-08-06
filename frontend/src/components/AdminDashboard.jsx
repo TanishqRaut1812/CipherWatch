@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Shield, AlertTriangle, X, Plus } from 'lucide-react'
+import { Shield, AlertTriangle, X, Plus, Building, Activity, PieChart as PieChartIcon, BarChart3 } from 'lucide-react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
 import NotificationCenter from './NotificationCenter'
 import OrganizationDashboard from './OrganizationDashboard'
@@ -359,7 +359,7 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
               background: 'rgba(252, 213, 53, 0.1)',
               border: '1px solid rgba(252, 213, 53, 0.3)',
               color: '#fcd535',
-              padding: '6px 12px',
+              padding: '6px 14px',
               borderRadius: '8px',
               fontSize: '12px',
               cursor: 'pointer',
@@ -369,7 +369,7 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
               gap: '6px',
             }}
           >
-            🏢 Switch Org
+            <Building size={13} /> Switch Org
           </button>
 
           {onLogout && (
@@ -396,111 +396,149 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
       {/* 2. HIGHEST-RISK-ORGANIZATION PANEL                           */}
       {/* ------------------------------------------------------------- */}
       <section style={{ padding: '24px 28px 12px 28px' }}>
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #1b0a10 0%, #120609 100%)',
-            borderRadius: '14px',
-            padding: '24px 32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            animation: 'pulsateRedGlow 2.8s ease-in-out infinite',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Ambient Background Grid Pattern */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'radial-gradient(rgba(246, 70, 93, 0.08) 1px, transparent 1px)',
-              backgroundSize: '16px 16px',
-              pointerEvents: 'none',
-            }}
-          />
+        {(() => {
+          const score = highestRiskOrg?.riskScore ?? 0
+          const isRed = score >= 70
+          const isYellow = score >= 40 && score < 70
+          const isGreen = score < 40
 
-          {/* Left: Organization Name */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
+          const colorTheme = isRed ? '#f6465d' : isYellow ? '#fcd535' : '#0ecb81'
+          const bgGradient = isRed
+            ? 'linear-gradient(135deg, #1b0a10 0%, #120609 100%)'
+            : isYellow
+            ? 'linear-gradient(135deg, #1f1b0a 0%, #141106 100%)'
+            : 'linear-gradient(135deg, #091a14 0%, #05110d 100%)'
+          const borderColor = isRed
+            ? '1px solid rgba(246, 70, 93, 0.45)'
+            : isYellow
+            ? '1px solid rgba(252, 213, 53, 0.45)'
+            : '1px solid rgba(14, 203, 129, 0.45)'
+          const shadowGlow = isRed
+            ? '0 0 25px rgba(246, 70, 93, 0.25)'
+            : isYellow
+            ? '0 0 25px rgba(252, 213, 53, 0.25)'
+            : '0 0 25px rgba(14, 203, 129, 0.25)'
+          const badgeText = isRed
+            ? 'CRITICAL SECURITY THREAT TARGET'
+            : isYellow
+            ? 'ELEVATED RISK TARGET WORKSPACE'
+            : 'OPTIMAL BASELINE WORKSPACE'
+
+          return (
             <div
               style={{
-                fontSize: '11px',
-                fontWeight: '800',
-                color: '#f6465d',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                marginBottom: '6px',
+                background: bgGradient,
+                border: borderColor,
+                boxShadow: shadowGlow,
+                borderRadius: '14px',
+                padding: '24px 32px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.4s ease',
               }}
             >
-              <span>CRITICAL SECURITY THREAT TARGET</span>
-            </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: '28px',
-                fontWeight: '800',
-                color: '#ffffff',
-                letterSpacing: '-0.5px',
-              }}
-            >
-              {highestRiskOrg?.name || 'HACKIT Cyber Operations'}
-            </h1>
-          </div>
+              {/* Ambient Background Grid Pattern */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `radial-gradient(${colorTheme}15 1px, transparent 1px)`,
+                  backgroundSize: '16px 16px',
+                  pointerEvents: 'none',
+                }}
+              />
 
-          {/* Center: Numeric Risk Score */}
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '700', letterSpacing: '1px' }}>
-              Aggregate Threat Risk Score
-            </div>
-            <div
-              style={{
-                fontSize: '44px',
-                fontWeight: '900',
-                color: '#f6465d',
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-1px',
-                textShadow: '0 0 20px rgba(246, 70, 93, 0.6)',
-                marginTop: '2px',
-              }}
-            >
-              {highestRiskOrg?.riskScore}%
-            </div>
-          </div>
+              {/* Left: Organization Name */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    color: colorTheme,
+                    letterSpacing: '1.5px',
+                    textTransform: 'uppercase',
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <span>{badgeText}</span>
+                </div>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: '28px',
+                    fontWeight: '800',
+                    color: '#ffffff',
+                    letterSpacing: '-0.5px',
+                  }}
+                >
+                  {highestRiskOrg?.name || 'HACKIT Cyber Operations'}
+                </h1>
+              </div>
 
-          {/* Right: Take Action Button */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <button
-              onClick={() => setActionNotice(`Initiated SOC Quarantine Protocol for ${highestRiskOrg?.name}`)}
-              style={{
-                background: 'linear-gradient(135deg, #f6465d 0%, #d9263e 100%)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '14px 28px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '800',
-                letterSpacing: '0.5px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(246, 70, 93, 0.45)',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                outline: 'none',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 8px 30px rgba(246, 70, 93, 0.7)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(246, 70, 93, 0.45)'
-              }}
-            >
-              Take Action
-            </button>
-          </div>
-        </div>
+              {/* Center: Numeric Risk Score */}
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '700', letterSpacing: '1px' }}>
+                  Aggregate Threat Risk Score
+                </div>
+                <div
+                  style={{
+                    fontSize: '44px',
+                    fontWeight: '900',
+                    color: colorTheme,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-1px',
+                    textShadow: `0 0 20px ${colorTheme}80`,
+                    marginTop: '2px',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  {score}%
+                </div>
+              </div>
+
+              {/* Right: Take Action Button */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <button
+                  onClick={() => setActionNotice(`Initiated SOC Security Scan Protocol for ${highestRiskOrg?.name}`)}
+                  style={{
+                    background: isRed
+                      ? 'linear-gradient(135deg, #f6465d 0%, #d9263e 100%)'
+                      : isYellow
+                      ? 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)'
+                      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: isYellow ? '#070a12' : '#ffffff',
+                    border: 'none',
+                    padding: '14px 28px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 20px ${colorTheme}50`,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    outline: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = `0 8px 30px ${colorTheme}80`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = `0 4px 20px ${colorTheme}50`
+                  }}
+                >
+                  Take Action
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Action Toast Feedback Notice */}
         {actionNotice && (
@@ -627,194 +665,232 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
 
           {/* Scrollable Organization Row-Cards List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '560px', paddingRight: '4px' }}>
-            {sortedOrgs.map((org) => {
-              const isHigh = org.riskScore >= 70
-              const isDropdownOpen = openDropdownId === org.id
-
-              return (
+            {sortedOrgs.length === 0 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--colors-canvas-dark)',
+                  border: '1px dashed var(--colors-hairline-on-dark)',
+                  borderRadius: '10px',
+                  margin: 'auto 0',
+                }}
+              >
                 <div
-                  key={org.id}
-                  onClick={() => setSelectedOrgForDetails(org)}
                   style={{
-                    backgroundColor: 'var(--colors-surface-card-dark)',
-                    border: '1px solid var(--colors-hairline-on-dark)',
-                    borderRadius: '10px',
-                    padding: '16px 20px',
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(252, 213, 53, 0.1)',
+                    border: '1px solid rgba(252, 213, 53, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.25s ease',
-                    position: 'relative',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(252, 213, 53, 0.4)'
-                    e.currentTarget.style.backgroundColor = 'var(--colors-canvas-dark)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)'
-                    e.currentTarget.style.backgroundColor = 'var(--colors-surface-card-dark)'
+                    justifyContent: 'center',
+                    color: '#fcd535',
+                    marginBottom: '14px',
                   }}
                 >
-                  {/* Left: Organization Name & Badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
-                        backgroundColor: isHigh ? 'rgba(246, 70, 93, 0.12)' : 'rgba(252, 213, 53, 0.12)',
-                        border: `1px solid ${isHigh ? 'rgba(246, 70, 93, 0.3)' : 'rgba(252, 213, 53, 0.3)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: isHigh ? '#f6465d' : '#fcd535',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                      }}
-                    >
-                      {org.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#f1f5f9' }}>
-                        {org.name}
-                      </h3>
-                      <span style={{ fontSize: '11px', color: 'var(--colors-muted)' }}>
-                        Threat Risk: <strong style={{ color: isHigh ? '#f6465d' : '#0ecb81' }}>{org.riskScore}%</strong>
-                      </span>
-                    </div>
-                  </div>
+                  <Building size={22} />
+                </div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '700', color: '#f8fafc' }}>
+                  No Managed Workspaces
+                </h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#64748b', maxWidth: '320px', lineHeight: '1.5' }}>
+                  Click 'Add New' above to create your first organization workspace.
+                </p>
+              </div>
+            ) : (
+              sortedOrgs.map((org) => {
+                const isHigh = org.riskScore >= 70
+                const isDropdownOpen = openDropdownId === org.id
 
-                  {/* Center: Number of Users */}
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}>
-                      {org.usersCount} Users
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Enrolled</div>
-                  </div>
-
-                  {/* Right: Three-Dot Action Icon */}
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenDropdownId(isDropdownOpen ? null : org.id)
-                      }}
-                      title="Organization Options"
-                      style={{
-                        background: isDropdownOpen ? 'var(--colors-surface-elevated-dark)' : 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        borderRadius: '6px',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        outline: 'none',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#fcd535')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="1.5" />
-                        <circle cx="12" cy="5" r="1.5" />
-                        <circle cx="12" cy="19" r="1.5" />
-                      </svg>
-                    </button>
-
-                    {/* Hover/Dropdown Action Card */}
-                    {isDropdownOpen && (
+                return (
+                  <div
+                    key={org.id}
+                    onClick={() => setSelectedOrgForDetails(org)}
+                    style={{
+                      backgroundColor: 'var(--colors-surface-card-dark)',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '10px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.25s ease',
+                      position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(252, 213, 53, 0.4)'
+                      e.currentTarget.style.backgroundColor = 'var(--colors-canvas-dark)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)'
+                      e.currentTarget.style.backgroundColor = 'var(--colors-surface-card-dark)'
+                    }}
+                  >
+                    {/* Left: Avatar & Org Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
                         style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: '36px',
-                          backgroundColor: 'var(--colors-surface-card-dark)',
-                          border: '1px solid var(--colors-hairline-on-dark)',
+                          width: '36px',
+                          height: '36px',
                           borderRadius: '8px',
-                          padding: '6px',
-                          width: '140px',
-                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
-                          zIndex: 50,
-                          animation: 'fadeInDown 0.15s ease-out',
+                          backgroundColor: isHigh ? 'rgba(246, 70, 93, 0.12)' : 'rgba(252, 213, 53, 0.12)',
+                          border: `1px solid ${isHigh ? 'rgba(246, 70, 93, 0.3)' : 'rgba(252, 213, 53, 0.3)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isHigh ? '#f6465d' : '#fcd535',
+                          fontWeight: '800',
+                          fontSize: '14px',
                         }}
-                        onClick={(e) => e.stopPropagation()}
                       >
-                        {/* Rename Action */}
-                        <button
-                          onClick={(e) => handleRenameOrg(org.id, org.name, e)}
-                          style={{
-                            width: '100%',
-                            background: 'none',
-                            border: 'none',
-                            color: '#cbd5e1',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            textAlign: 'left',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--colors-surface-elevated-dark)'
-                            e.currentTarget.style.color = '#fcd535'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                            e.currentTarget.style.color = '#cbd5e1'
-                          }}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcd535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                          </svg>
-                          Rename
-                        </button>
-
-                        {/* Delete Action */}
-                        <button
-                          onClick={(e) => handleDeleteOrg(org.id, e)}
-                          style={{
-                            width: '100%',
-                            background: 'none',
-                            border: 'none',
-                            color: '#f6465d',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            textAlign: 'left',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.15)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                          }}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f6465d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                          Delete
-                        </button>
+                        {org.name.charAt(0)}
                       </div>
-                    )}
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#f1f5f9' }}>
+                          {org.name}
+                        </h3>
+                        <span style={{ fontSize: '11px', color: 'var(--colors-muted)' }}>
+                          Threat Risk: <strong style={{ color: isHigh ? '#f6465d' : '#0ecb81' }}>{org.riskScore}%</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Center: Number of Users */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}>
+                        {org.usersCount} Users
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Enrolled</div>
+                    </div>
+
+                    {/* Right: Three-Dot Action Icon */}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenDropdownId(isDropdownOpen ? null : org.id)
+                        }}
+                        title="Organization Options"
+                        style={{
+                          background: isDropdownOpen ? 'var(--colors-surface-elevated-dark)' : 'transparent',
+                          border: 'none',
+                          color: '#94a3b8',
+                          borderRadius: '6px',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          outline: 'none',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#fcd535')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="1.5" />
+                          <circle cx="12" cy="5" r="1.5" />
+                          <circle cx="12" cy="19" r="1.5" />
+                        </svg>
+                      </button>
+
+                      {/* Dropdown Action Menu */}
+                      {isDropdownOpen && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '36px',
+                            backgroundColor: 'var(--colors-surface-card-dark)',
+                            border: '1px solid var(--colors-hairline-on-dark)',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            width: '140px',
+                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+                            zIndex: 50,
+                            animation: 'fadeInDown 0.15s ease-out',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={(e) => handleRenameOrg(org.id, org.name, e)}
+                            style={{
+                              width: '100%',
+                              background: 'none',
+                              border: 'none',
+                              color: '#cbd5e1',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              textAlign: 'left',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'var(--colors-surface-elevated-dark)'
+                              e.currentTarget.style.color = '#fcd535'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent'
+                              e.currentTarget.style.color = '#cbd5e1'
+                            }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcd535" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                            Rename
+                          </button>
+
+                          <button
+                            onClick={(e) => handleDeleteOrg(org.id, e)}
+                            style={{
+                              width: '100%',
+                              background: 'none',
+                              border: 'none',
+                              color: '#f6465d',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              textAlign: 'left',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(246, 70, 93, 0.15)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent'
+                            }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f6465d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </section>
 
@@ -874,9 +950,12 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
                     fontWeight: '800',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
                   }}
                 >
-                  🥧 Pie View
+                  <PieChartIcon size={13} /> Pie View
                 </button>
                 <button
                   type="button"
@@ -891,86 +970,138 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
                     fontWeight: '800',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
                   }}
                 >
-                  📊 Bar View
+                  <BarChart3 size={13} /> Bar View
                 </button>
               </div>
             </div>
 
             {/* Dynamic Chart Body */}
-            {threatChartType === 'pie' ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', flex: 1, minHeight: '300px' }}>
-                <div style={{ width: 200, height: 200 }}>
+            {organizations.length === 0 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '320px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--colors-canvas-dark)',
+                  borderRadius: '10px',
+                  border: '1px dashed var(--colors-hairline-on-dark)',
+                  margin: '12px 0',
+                }}
+              >
+                <Activity size={32} color="#64748b" style={{ marginBottom: '12px' }} />
+                <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>
+                  No Organization Telemetry
+                </h5>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  Create managed workspaces to begin aggregating organization threat telemetry.
+                </span>
+              </div>
+            ) : threatChartType === 'pie' ? (() => {
+              const critCount = organizations.filter(o => o.threatLevel === 'CRITICAL' || o.riskScore >= 75).length
+              const elevCount = organizations.filter(o => o.threatLevel === 'HIGH' || o.threatLevel === 'MEDIUM' || (o.riskScore >= 40 && o.riskScore < 75)).length
+              const normCount = Math.max(0, organizations.length - (critCount + elevCount))
+              const totalOrgs = organizations.length || 1
+
+              const critPct = Math.round((critCount / totalOrgs) * 100)
+              const elevPct = Math.round((elevCount / totalOrgs) * 100)
+              const normPct = Math.max(0, 100 - critPct - elevPct)
+
+              const pieData = [
+                { name: 'Critical Threat', value: critCount, color: '#f6465d' },
+                { name: 'Elevated Risk', value: elevCount, color: '#fcd535' },
+                { name: 'Normal Baseline', value: normCount, color: '#0ecb81' },
+              ]
+
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '32px', flex: 1, minHeight: '360px', padding: '12px 0' }}>
+                  <div style={{ width: 320, height: 320, position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '13px' }}
+                        />
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={65}
+                          outerRadius={125}
+                          paddingAngle={6}
+                          dataKey="value"
+                        >
+                          {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
+                            <Cell key={`admin-cell-${index}`} fill={color} stroke="#070a12" strokeWidth={3} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: '220px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: 'rgba(246, 70, 93, 0.08)', borderRadius: '8px', border: '1px solid rgba(246, 70, 93, 0.2)' }}>
+                      <span style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 10px #f6465d' }} />
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#f8fafc', fontWeight: '800' }}>Critical Threat</div>
+                        <div style={{ fontSize: '12px', color: '#f6465d', fontWeight: '700' }}>{critCount} orgs ({critPct}%)</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: 'rgba(252, 213, 53, 0.08)', borderRadius: '8px', border: '1px solid rgba(252, 213, 53, 0.2)' }}>
+                      <span style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 10px #fcd535' }} />
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#f8fafc', fontWeight: '800' }}>Elevated Risk</div>
+                        <div style={{ fontSize: '12px', color: '#fcd535', fontWeight: '700' }}>{elevCount} orgs ({elevPct}%)</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: 'rgba(14, 203, 129, 0.08)', borderRadius: '8px', border: '1px solid rgba(14, 203, 129, 0.2)' }}>
+                      <span style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 10px #0ecb81' }} />
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#f8fafc', fontWeight: '800' }}>Normal Baseline</div>
+                        <div style={{ fontSize: '12px', color: '#0ecb81', fontWeight: '700' }}>{normCount} orgs ({normPct}%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })() : (() => {
+              const totalEvents = organizations.reduce((acc, o) => acc + (o.usersCount * 15 || 0), 0)
+              const barData = [
+                { time: '00:00', threats: Math.round(totalEvents * 0.15) },
+                { time: '04:00', threats: Math.round(totalEvents * 0.25) },
+                { time: '08:00', threats: Math.round(totalEvents * 0.65) },
+                { time: '12:00', threats: Math.round(totalEvents * 0.90) },
+                { time: '16:00', threats: Math.round(totalEvents * 0.55) },
+                { time: '20:00', threats: Math.round(totalEvents * 0.30) },
+              ]
+
+              return (
+                <div style={{ flex: 1, minHeight: '360px', width: '100%', display: 'flex', alignItems: 'center', padding: '16px 0' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <BarChart data={barData} margin={{ top: 20, right: 10, left: -20, bottom: 10 }}>
+                      <XAxis dataKey="time" stroke="#64748b" fontSize={12} tickLine={false} />
+                      <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                        contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
                       />
-                      <Pie
-                        data={[
-                          { name: 'Critical Threat', value: 35, color: '#f6465d' },
-                          { name: 'Elevated Risk', value: 45, color: '#fcd535' },
-                          { name: 'Normal Baseline', value: 20, color: '#0ecb81' },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={48}
-                        outerRadius={85}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
-                          <Cell key={`admin-cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                      <Bar dataKey="threats" fill="#fcd535" radius={[6, 6, 0, 0]}>
+                        {barData.map((d, idx) => (
+                          <Cell key={`bar-${idx}`} fill={d.threats >= 70 ? '#f6465d' : d.threats >= 40 ? '#fcd535' : '#0ecb81'} />
                         ))}
-                      </Pie>
-                    </PieChart>
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 8px #f6465d' }} />
-                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Critical Threat (35%)</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 8px #fcd535' }} />
-                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Elevated Risk (45%)</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 8px #0ecb81' }} />
-                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>Normal Baseline (20%)</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, minHeight: '300px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { time: '00:00', threats: 30 },
-                      { time: '04:00', threats: 45 },
-                      { time: '08:00', threats: 75 },
-                      { time: '12:00', threats: 95 },
-                      { time: '16:00', threats: 60 },
-                      { time: '20:00', threats: 35 },
-                    ]}
-                    margin={{ top: 20, right: 10, left: -20, bottom: 10 }}
-                  >
-                    <XAxis dataKey="time" stroke="#64748b" fontSize={12} tickLine={false} />
-                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
-                    />
-                    <Bar dataKey="threats" fill="#fcd535" radius={[6, 6, 0, 0]}>
-                      {[30, 45, 75, 95, 60, 35].map((val, idx) => (
-                        <Cell key={`bar-${idx}`} fill={val >= 90 ? '#f6465d' : val >= 60 ? '#fcd535' : '#0ecb81'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+              )
+            })()}
           </section>
         </div>
       </main>
