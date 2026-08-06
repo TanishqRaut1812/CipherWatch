@@ -2,13 +2,16 @@
 set -e
 
 if [ "$EUID" -ne 0 ]; then
-  echo "❌ Please run install.sh as root (sudo ./install.sh)."
+  echo "❌ Please run install.sh as root (sudo ./install.sh or sudo ./build/install.sh)."
   exit 1
 fi
 
 echo "============================================================"
 echo "🛡️  Installing CipherWatch Standalone Linux Endpoint Agent"
 echo "============================================================"
+
+# Resolve script folder location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check for existing installation
 if [ -f "/usr/local/bin/cipherwatch-agent" ] || [ -d "/etc/cipherwatch" ]; then
@@ -22,17 +25,17 @@ if [ -f "/usr/local/bin/cipherwatch-agent" ] || [ -d "/etc/cipherwatch" ]; then
     echo "Proceeding with upgrade..."
 fi
 
-# Resolve location of built executable
-BIN_SRC="./cipherwatch-agent"
+# Locate binary executable
+BIN_SRC="$SCRIPT_DIR/cipherwatch-agent"
 if [ ! -f "$BIN_SRC" ]; then
-    BIN_SRC="../build/cipherwatch-agent"
+    BIN_SRC="$SCRIPT_DIR/build/cipherwatch-agent"
 fi
 if [ ! -f "$BIN_SRC" ]; then
-    BIN_SRC="../../build/cipherwatch-agent"
+    BIN_SRC="$SCRIPT_DIR/dist/cipherwatch-agent"
 fi
 
 if [ ! -f "$BIN_SRC" ]; then
-    echo "❌ Executable binary cipherwatch-agent not found in build/. Run ./build.sh first."
+    echo "❌ Executable binary cipherwatch-agent not found. Run ./build.sh first."
     exit 1
 fi
 
@@ -48,9 +51,12 @@ chmod 700 /etc/cipherwatch
 
 # 3. Install and enable systemd service unit
 echo "⚙️ Installing systemd service (cipherwatch-agent.service)..."
-SERVICE_SRC="./cipherwatch-agent.service"
+SERVICE_SRC="$SCRIPT_DIR/cipherwatch-agent.service"
 if [ ! -f "$SERVICE_SRC" ]; then
-    SERVICE_SRC="../build/cipherwatch-agent.service"
+    SERVICE_SRC="$SCRIPT_DIR/build/cipherwatch-agent.service"
+fi
+if [ ! -f "$SERVICE_SRC" ]; then
+    SERVICE_SRC="$SCRIPT_DIR/installer/linux/cipherwatch-agent.service"
 fi
 
 if [ -f "$SERVICE_SRC" ]; then

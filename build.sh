@@ -7,8 +7,15 @@ echo "============================================================"
 
 # Ensure PyInstaller is installed
 if ! command -v pyinstaller &> /dev/null; then
-    echo "📦 Installing PyInstaller build dependencies..."
-    pip install pyinstaller httpx psutil watchdog pydantic
+    echo "📦 PyInstaller command not found in PATH. Checking installer fallbacks..."
+    if command -v uv &> /dev/null; then
+        uv pip install pyinstaller httpx psutil watchdog pydantic
+    elif command -v pip3 &> /dev/null; then
+        pip3 install pyinstaller httpx psutil watchdog pydantic || pip3 install --break-system-packages pyinstaller httpx psutil watchdog pydantic
+    else
+        echo "❌ PyInstaller is required to build standalone binary. Please install pyinstaller."
+        exit 1
+    fi
 fi
 
 # Clean previous build artifacts
@@ -22,7 +29,11 @@ pyinstaller --clean cipherwatch-agent.spec
 
 # Organize deployment package inside build/ directory
 if [ -f "dist/cipherwatch-agent" ]; then
-    cp dist/cipherwatch-agent build/cipherwatch-agent
+    # Remove PyInstaller's temporary work directory inside build/
+    rm -rf build/cipherwatch-agent/
+
+    # Move binary into build/ directory as executable file
+    mv dist/cipherwatch-agent build/cipherwatch-agent
     chmod +x build/cipherwatch-agent
 
     cp installer/linux/install.sh build/install.sh
