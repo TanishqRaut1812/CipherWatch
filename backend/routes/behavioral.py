@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.analytics.predictive_engine import predictive_engine
 from backend.db.session import get_db
-from backend.routes.auth import get_current_user
+from backend.user_auth import get_current_user
 from backend.db.models import UserModel
 
 router = APIRouter(prefix="/api/behavioral-sessions", tags=["Behavioral Intelligence"])
