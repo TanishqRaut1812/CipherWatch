@@ -52,6 +52,7 @@ def check_rate_limit(agent_id: str):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Rate limit exceeded. Maximum {MAX_REQUESTS_PER_WINDOW} requests per minute allowed.",
+            headers={"Retry-After": "5"},
         )
     timestamps.append(now)
     request_history[agent_id] = timestamps

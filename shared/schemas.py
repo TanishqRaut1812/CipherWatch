@@ -52,6 +52,9 @@ class ProcessMetadata(BaseModel):
     process_name: str = Field(..., description="Executable binary name")
     pid: int = Field(...)
     category: str = Field("general", description="sync_app, compression_tool, mail_client, browser, general")
+    action: str = Field("start", description="start, stop, snapshot")
+    exe_path: Optional[str] = Field(None, description="Executable path")
+    cmdline: Optional[str] = Field(None, description="Process command line")
 
 
 class ScreenshotEventMetadata(BaseModel):
