@@ -44,7 +44,7 @@ def test_send_high_threat_alert_email_success(mock_settings, mock_httpx_client):
         org_name="HACKIT",
         device_name="Prod-Server",
         hostname="srv-01",
-        severity="HIGH",
+        severity="CRITICAL",
         rule_id="PROC_SUSPICIOUS_PATH",
         risk_score=0.88,
         message="Suspicious binary spawned from /tmp",
@@ -56,7 +56,7 @@ def test_send_high_threat_alert_email_success(mock_settings, mock_httpx_client):
     assert call_args[0][0] == "https://api.resend.com/emails"
     assert call_args[1]["headers"]["Authorization"] == "Bearer re_test_key_123"
     assert call_args[1]["json"]["to"] == ["soc-admin@hacker.io"]
-    assert "HIGH THREAT DETECTED" in call_args[1]["json"]["subject"]
+    assert "CRITICAL THREAT DETECTED" in call_args[1]["json"]["subject"]
 
 
 def test_sent_emails_log_tracking():

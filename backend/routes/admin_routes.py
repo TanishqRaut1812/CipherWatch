@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import random
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_, desc
 from sqlalchemy.orm import Session
 
@@ -12,11 +13,13 @@ from backend.db.models import (
     MetricsSnapshotModel,
     OrganizationModel,
     ProcessEventModel,
+    USBEventModel,
     UserModel,
     UserOrganizationModel,
 )
 from backend.db.session import get_db
 from backend.logging_config import logger
+from backend.services.email_service import send_test_threat_alert_email
 from backend.user_auth import get_current_user, require_org_membership
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -174,6 +177,14 @@ def get_system_detail(
         .all()
     )
 
+    recent_usb = (
+        db.query(USBEventModel)
+        .filter(USBEventModel.agent_id == agent_id)
+        .order_by(USBEventModel.timestamp.desc())
+        .limit(30)
+        .all()
+    )
+
     return {
         "header": {
             "id": agent.id,
@@ -235,6 +246,18 @@ def get_system_detail(
             }
             for f in recent_fs
         ],
+        "recent_usb_events": [
+            {
+                "id": u.id,
+                "timestamp": u.timestamp,
+                "action": u.action,
+                "vendor_id": u.vendor_id,
+                "product_id": u.product_id,
+                "device_name": u.device_name,
+                "mount_point": u.mount_point,
+            }
+            for u in recent_usb
+        ],
     }
 
 
@@ -288,6 +311,21 @@ def get_unified_event_timeline(
                 "event_type": f.event_type,
                 "title": f"FS {f.event_type.upper()}: {f.src_path}",
                 "details": f"Dest: {f.dest_path or 'N/A'} | Directory: {f.is_directory}",
+            })
+
+    if event_category in ("all", "usb"):
+        usb_q = db.query(USBEventModel).filter(USBEventModel.agent_id == agent_id)
+        if search:
+            s = f"%{search.strip()}%"
+            usb_q = usb_q.filter(or_(USBEventModel.device_name.ilike(s), USBEventModel.action.ilike(s), USBEventModel.vendor_id.ilike(s)))
+        for u in usb_q.all():
+            events.append({
+                "id": f"usb_{u.id}",
+                "timestamp": u.timestamp,
+                "category": "usb",
+                "event_type": u.action,
+                "title": f"USB MASS STORAGE {u.action.upper()}: {u.device_name or 'Removable Device'}",
+                "details": f"Vendor ID: {u.vendor_id or 'N/A'} | Product ID: {u.product_id or 'N/A'} | Mount: {u.mount_point or 'N/A'}",
             })
 
     events.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -702,3 +740,51 @@ def acknowledge_threat_default(
         user=user,
         db=db,
     )
+
+
+class TestEmailPayload(BaseModel):
+    recipient_email: Optional[str] = None
+    org_name: Optional[str] = "HackIT Demo"
+    hostname: Optional[str] = "DESKTOP-DEMO"
+    threat_name: Optional[str] = "USB Data Exfiltration"
+    severity: Optional[str] = "CRITICAL"
+    risk_score: Optional[float] = 0.92
+    confidence: Optional[str] = "94%"
+    affected_user: Optional[str] = "Demo User"
+
+
+@router.post("/email/test")
+def send_test_email_endpoint(
+    payload: Optional[TestEmailPayload] = None,
+    user: UserModel = Depends(get_current_user),
+):
+    """Admin-only endpoint to send a realistic Critical Threat Alert email immediately.
+    
+    Does NOT modify database state or create AlertModel records.
+    """
+    body = payload or TestEmailPayload()
+    target_email = body.recipient_email or user.email
+
+    result = send_test_threat_alert_email(
+        recipient_email=target_email,
+        org_name=body.org_name or "HackIT Demo",
+        hostname=body.hostname or "DESKTOP-DEMO",
+        threat_name=body.threat_name or "USB Data Exfiltration",
+        severity=body.severity or "CRITICAL",
+        risk_score=body.risk_score if body.risk_score is not None else 0.92,
+        confidence=body.confidence or "94%",
+        affected_user=body.affected_user or "Demo User",
+    )
+
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "message": "Failed to send test email via Resend",
+                "error": result.get("error"),
+                "details": result.get("details"),
+            },
+        )
+
+    return result
+
