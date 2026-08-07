@@ -31,6 +31,22 @@ class AlertService:
         if risk_score < self.threshold:
             return None
 
+        # Check if identical active alert exists within 1 hour to prevent notification spam
+        from datetime import datetime, timedelta
+        cutoff_1h = datetime.utcnow() - timedelta(hours=1)
+        existing_active = (
+            db.query(AlertModel)
+            .filter(
+                AlertModel.user_id == event.user_id,
+                AlertModel.device_id == event.device_id,
+                AlertModel.status == "ACTIVE",
+                AlertModel.timestamp >= cutoff_1h,
+            )
+            .first()
+        )
+        if existing_active:
+            return existing_active
+
         severity = self.compute_severity(risk_score)
         message = (
             f"Anomalous telemetry detected for user '{event.user_id}' "
