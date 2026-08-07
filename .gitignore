@@ -15,6 +15,9 @@ wheels/
 .agent/
 .kiro/
 
+# Temporary & Verification Scripts
+verify_*.py
+
 # Database & Caches
 *.db
 .pytest_cache/
