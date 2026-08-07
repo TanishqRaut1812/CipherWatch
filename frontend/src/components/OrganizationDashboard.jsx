@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Shield, Activity, Building, Key, RefreshCw, Edit3, Trash2, Plus, ChevronDown, Copy, Check, Eye, EyeOff, User, Info } from 'lucide-react'
+import { Shield, Activity, Building, Key, RefreshCw, Edit3, Trash2, Plus, ChevronDown, Copy, Check, Eye, EyeOff, User, Info, X, PieChart as PieChartIcon, BarChart2 as BarChartIcon } from 'lucide-react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
 import NotificationCenter from './NotificationCenter'
 import UserDetailDashboard from './UserDetailDashboard'
 import OrganizationSwitchModal from './OrganizationSwitchModal'
 import PredictiveBehaviorWidget from './PredictiveBehaviorWidget'
 
-export default function OrganizationDashboard({ org, onBackToAdmin, currentUser, onLogout, onSwitchOrg, onSelectUser, organizations, onSelectOrg }) {
+export default function OrganizationDashboard({ org, onBackToAdmin, currentUser, onLogout, onSwitchOrg, onSelectUser, organizations, onSelectOrg, onSwitchView }) {
   const [selectedUser, setSelectedUser] = useState(null)
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false)
 
@@ -30,6 +30,9 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
   // Users/agents state loaded from database
   const [users, setUsers] = useState([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
+
+  // Right column chart toggle state ('pie' | 'bar')
+  const [rightChartView, setRightChartView] = useState('pie')
 
   // Fetch real registration credentials & enrolled agents for this org
   useEffect(() => {
@@ -243,18 +246,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
     return <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#1e293b', color: '#fcd535', padding: '2px 6px', borderRadius: '4px' }}>LNX</span>
   }
 
-  if (selectedUser) {
-    return (
-      <UserDetailDashboard
-        user={selectedUser}
-        org={currentOrg}
-        onBackToOrg={() => setSelectedUser(null)}
-        currentUser={currentUser}
-        onLogout={onLogout}
-        onSwitchView={onSwitchView}
-      />
-    )
-  }
+
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
@@ -1156,7 +1148,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
         {/* ========================================================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* RIGHT, TOP PANEL: USER RISK SEVERITY BREAKDOWN */}
+          {/* RIGHT COLUMN: SINGLE DYNAMIC TELEMETRY CHART PANEL WITH PIE/BAR FLIP TOGGLE */}
           <section
             style={{
               backgroundColor: 'var(--colors-surface-card-dark)',
@@ -1166,130 +1158,157 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
             }}
           >
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
-                User Risk Level Distribution
-              </h3>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                Risk classification across enrolled user endpoints
-              </span>
+            {/* Header with Title, Subtitle, and Segmented Toggle Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', gap: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
+                  {rightChartView === 'pie' ? 'User Risk Level Distribution' : 'User Event Density Trends'}
+                </h3>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  {rightChartView === 'pie'
+                    ? 'Risk classification across enrolled user endpoints'
+                    : 'Hourly telemetry events generated across endpoints'}
+                </span>
+              </div>
+
+              {/* Segmented View Toggle Switch */}
+              <div
+                style={{
+                  display: 'flex',
+                  backgroundColor: 'var(--colors-canvas-dark)',
+                  border: '1px solid var(--colors-hairline-on-dark)',
+                  borderRadius: '8px',
+                  padding: '3px',
+                  gap: '2px',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setRightChartView('pie')}
+                  title="Switch to Pie Chart view"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: rightChartView === 'pie' ? 'var(--colors-primary)' : 'transparent',
+                    color: rightChartView === 'pie' ? 'var(--colors-canvas-dark)' : 'var(--colors-muted-strong)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <PieChartIcon size={14} />
+                  <span>Pie</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRightChartView('bar')}
+                  title="Switch to Bar Chart view"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: rightChartView === 'bar' ? 'var(--colors-primary)' : 'transparent',
+                    color: rightChartView === 'bar' ? 'var(--colors-canvas-dark)' : 'var(--colors-muted-strong)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <BarChartIcon size={14} />
+                  <span>Bar</span>
+                </button>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', minHeight: '240px', padding: '10px 0' }}>
-              {/* Recharts Donut/Pie Chart */}
+            {/* Dynamic Chart View Canvas */}
+            <div style={{ minHeight: '260px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {(() => {
                 if (users.length === 0) {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '24px', textAlign: 'center' }}>
                       <Activity size={32} color="#64748b" style={{ marginBottom: '12px' }} />
                       <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>
-                        No Risk Telemetry Available
+                        No Telemetry Available
                       </h5>
                       <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        Enroll endpoints to calculate real-time fleet risk distribution.
+                        Enroll endpoints to populate real-time risk distribution and event trends.
                       </span>
                     </div>
                   )
                 }
 
-                const highRisk = users.filter(u => u.riskScore >= 70).length
-                const modRisk = users.filter(u => u.riskScore >= 40 && u.riskScore < 70).length
-                const compliant = Math.max(0, users.length - (highRisk + modRisk))
+                if (rightChartView === 'pie') {
+                  const highRisk = users.filter(u => u.riskScore >= 70).length
+                  const modRisk = users.filter(u => u.riskScore >= 40 && u.riskScore < 70).length
+                  const compliant = Math.max(0, users.length - (highRisk + modRisk))
 
-                const pieData = [
-                  { name: 'High Risk', value: highRisk, color: '#f6465d' },
-                  { name: 'Moderate Risk', value: modRisk, color: '#fcd535' },
-                  { name: 'Compliant', value: compliant, color: '#0ecb81' },
-                ]
+                  const pieData = [
+                    { name: 'High Risk', value: highRisk, color: '#f6465d' },
+                    { name: 'Moderate Risk', value: modRisk, color: '#fcd535' },
+                    { name: 'Compliant', value: compliant, color: '#0ecb81' },
+                  ]
 
-                return (
-                  <>
-                    <div style={{ width: 220, height: 220 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Tooltip
-                            contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
-                          />
-                          <Pie
-                            data={pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={48}
-                            outerRadius={95}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
-                              <Cell key={`cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Pie Chart Legend */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 8px #f6465d' }} />
-                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
-                          High Risk ({highRisk})
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 8px #fcd535' }} />
-                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
-                          Moderate Risk ({modRisk})
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 8px #0ecb81' }} />
-                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
-                          Compliant ({compliant})
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )
-              })()}
-            </div>
-          </section>
-
-          {/* RIGHT, BOTTOM PANEL: RECHARTS USER ACTIVITY FREQUENCY BAR GRAPH */}
-          <section
-            style={{
-              backgroundColor: 'var(--colors-surface-card-dark)',
-              border: '1px solid var(--colors-hairline-on-dark)',
-              borderRadius: '14px',
-              padding: '24px',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-            }}
-          >
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc' }}>
-                User Event Density Trends
-              </h3>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
-                Hourly telemetry events generated across endpoints
-              </span>
-            </div>
-
-            {/* Recharts Bar Chart */}
-            <div style={{ height: '240px', width: '100%' }}>
-              {(() => {
-                if (users.length === 0) {
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-                      <Activity size={32} color="#64748b" style={{ marginBottom: '12px' }} />
-                      <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>
-                        No Event Density Telemetry
-                      </h5>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        Hourly event trends will populate automatically as endpoint agents log system events.
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', width: '100%', padding: '10px 0' }}>
+                      <div style={{ width: 220, height: 220 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                            />
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={48}
+                              outerRadius={95}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {['#f6465d', '#fcd535', '#0ecb81'].map((color, index) => (
+                                <Cell key={`cell-${index}`} fill={color} stroke="#070a12" strokeWidth={2} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Pie Chart Legend */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#f6465d', boxShadow: '0 0 8px #f6465d' }} />
+                          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                            High Risk ({highRisk})
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fcd535', boxShadow: '0 0 8px #fcd535' }} />
+                          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                            Moderate Risk ({modRisk})
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0ecb81', boxShadow: '0 0 8px #0ecb81' }} />
+                          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '700' }}>
+                            Compliant ({compliant})
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )
                 }
 
+                // rightChartView === 'bar'
                 const totalUserEvents = users.reduce((sum, u) => sum + (u.eventsCount || 0), 0)
                 const userBarData = [
                   { time: '00:00', events: Math.round(totalUserEvents * 0.10) },
@@ -1301,23 +1320,25 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
                 ]
 
                 return (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={userBarData}
-                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                    >
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
-                      />
-                      <Bar dataKey="events" fill="#fcd535" radius={[4, 4, 0, 0]}>
-                        {userBarData.map((d, idx) => (
-                          <Cell key={`bar-${idx}`} fill={d.events >= 70 ? '#f6465d' : d.events >= 40 ? '#fcd535' : '#0ecb81'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div style={{ height: '240px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={userBarData}
+                        margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                      >
+                        <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#070a12', borderColor: '#334155', borderRadius: '8px', color: '#fcd535', fontSize: '12px' }}
+                        />
+                        <Bar dataKey="events" fill="#fcd535" radius={[4, 4, 0, 0]}>
+                          {userBarData.map((d, idx) => (
+                            <Cell key={`bar-${idx}`} fill={d.events >= 70 ? '#f6465d' : d.events >= 40 ? '#fcd535' : '#0ecb81'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )
               })()}
             </div>
