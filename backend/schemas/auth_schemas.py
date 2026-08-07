@@ -7,12 +7,22 @@ class SignupRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=256)
     username: str = Field(..., min_length=3, max_length=64)
     password: str = Field(..., min_length=8, max_length=128)
-    org_name: str = Field(..., min_length=2, max_length=128, description="Organization name (required for v1)")
+    org_name: Optional[str] = Field(None, max_length=128, description="Optional organization name")
 
 
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=256)
     password: str = Field(..., min_length=1, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=256)
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=256)
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 class TokenResponse(BaseModel):

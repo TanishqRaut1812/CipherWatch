@@ -284,3 +284,79 @@ def send_high_threat_alert_email(
         logger.error("Exception occurred while sending Resend threat alert email to {}: {}", admin_email, e)
         mail_entry["status"] = "FAILED"
         return False
+
+
+def send_otp_email(recipient_email: str, otp_code: str) -> bool:
+    """Send a 2FA OTP password reset verification code via Resend API."""
+    api_key = settings.RESEND_API_KEY
+    sender = settings.SENDER_EMAIL or "CipherWatch Security <onboarding@resend.dev>"
+    subject = f"🔑 [{otp_code}] Your CipherWatch Password Reset Code"
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Password Reset Code - CipherWatch</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; color: #e2e8f0;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0b0f19; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" max-width="520px" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #111827; border: 1px solid #1f293d; border-radius: 12px; padding: 32px;">
+          <tr>
+            <td>
+              <div style="color: #fcd535; font-weight: 800; font-size: 16px; letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase;">
+                CIPHERWATCH SECURITY PORTAL
+              </div>
+              <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 12px 0;">Password Reset 2FA Code</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.55; margin-bottom: 24px;">
+                Use the following 6-digit verification code to complete your password reset request. This code is valid for 10 minutes.
+              </p>
+              <div style="background-color: #0b0e14; border: 1px solid rgba(252, 213, 53, 0.4); border-radius: 8px; padding: 20px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 34px; font-weight: 800; color: #fcd535; letter-spacing: 8px; margin-bottom: 24px; box-shadow: 0 0 16px rgba(252, 213, 53, 0.15);">
+                {otp_code}
+              </div>
+              <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 0;">
+                If you did not request a password reset, please ignore this email or notify your SOC administrator immediately.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    if not api_key:
+        logger.warning(
+            "Resend OTP email dispatch skipped: RESEND_API_KEY is not set. Demo OTP code for {}: {}",
+            recipient_email,
+            otp_code,
+        )
+        return True
+
+    payload = {
+        "from": sender,
+        "to": [recipient_email],
+        "subject": subject,
+        "html": html_content,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.post("https://api.resend.com/emails", json=payload, headers=headers)
+            if resp.status_code in (200, 201):
+                logger.info("Resend OTP email sent successfully to {}", recipient_email)
+                return True
+            else:
+                logger.error("Failed to send Resend OTP email: status={}, response={}", resp.status_code, resp.text)
+                return False
+    except Exception as e:
+        logger.error("Exception occurred while sending Resend OTP email to {}: {}", recipient_email, e)
+        return False
+
