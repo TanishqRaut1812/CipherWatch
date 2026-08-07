@@ -3,6 +3,27 @@ import sys
 import time
 import subprocess
 import signal
+import urllib.request
+import urllib.error
+
+
+def wait_for_backend(url: str = "http://127.0.0.1:8000/api/health", timeout_seconds: float = 30.0) -> bool:
+    """Poll backend API until it responds with HTTP 200 OK or times out."""
+    print(f"Waiting for backend server at {url} to accept connections...")
+    start_time = time.time()
+    while time.time() - start_time < timeout_seconds:
+        try:
+            with urllib.request.urlopen(url, timeout=2.0) as response:
+                if response.status == 200:
+                    print("✓ Backend server is ready and accepting requests.")
+                    return True
+        except (urllib.error.URLError, ConnectionError, OSError):
+            pass
+        time.sleep(0.5)
+
+    print("⚠️ Timeout waiting for backend server to become ready.")
+    return False
+
 
 def main():
     if hasattr(sys.stdout, 'reconfigure'):
@@ -16,8 +37,8 @@ def main():
     print("🛡️  Starting CipherWatch Insider Threat Intelligence Platform...")
     print("=" * 70)
 
-    # 1. Initialize SQLite DB
-    print("\n[1/4] Initializing SQLite database schema...")
+    # 1. Initialize DB Schema
+    print("\n[1/4] Initializing database schema...")
     try:
         from backend.db.session import init_db
         init_db()
@@ -46,8 +67,8 @@ def main():
     backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"]
     backend_proc = subprocess.Popen(backend_cmd)
 
-    # Wait for backend server to spin up
-    time.sleep(2.5)
+    # Wait for backend server to be fully active and accepting HTTP requests
+    wait_for_backend("http://127.0.0.1:8000/api/health", timeout_seconds=30.0)
 
     # 3. Inject Initial Synthetic Security Scenario
     print("\n[3/4] Injecting High-Risk Security Event Scenario into backend...")
