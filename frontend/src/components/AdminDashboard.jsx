@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Shield, AlertTriangle, X, Plus, Building, Activity, PieChart as PieChartIcon, BarChart3 } from 'lucide-react'
+import { Shield, AlertTriangle, X, Plus, Building, Activity, PieChart as PieChartIcon, BarChart3, Mail, Send, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from './RechartsCompat'
 import NotificationCenter from './NotificationCenter'
 import OrganizationDashboard from './OrganizationDashboard'
@@ -123,6 +123,73 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
   const [newOrgName, setNewOrgName] = useState('')
   const [newOrgDomain, setNewOrgDomain] = useState('')
   const [newOrgContact, setNewOrgContact] = useState('')
+
+  // Demo Security Email Modal State
+  const [isDemoEmailModalOpen, setIsDemoEmailModalOpen] = useState(false)
+  const [demoEmailSending, setDemoEmailSending] = useState(false)
+  const [demoEmailStatus, setDemoEmailStatus] = useState(null)
+
+  const [demoRecipient, setDemoRecipient] = useState(currentUser?.email || 'admin@cipherwatch.local')
+  const [demoOrgName, setDemoOrgName] = useState(selectedOrgForDetails?.name || selectedOrg?.name || 'HackIT Demo')
+  const [demoHostname, setDemoHostname] = useState('DESKTOP-DEMO')
+  const [demoThreatName, setDemoThreatName] = useState('USB Data Exfiltration')
+  const [demoSeverity, setDemoSeverity] = useState('CRITICAL')
+  const [demoRiskScore, setDemoRiskScore] = useState(92)
+  const [demoConfidence, setDemoConfidence] = useState('94%')
+  const [demoAffectedUser, setDemoAffectedUser] = useState('Demo User')
+
+  // Send Demo Email Handler - calls POST /api/admin/email/test
+  const handleSendDemoEmail = async (e) => {
+    e.preventDefault()
+    setDemoEmailSending(true)
+    setDemoEmailStatus(null)
+
+    try {
+      const res = await fetch('/api/admin/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_email: demoRecipient,
+          org_name: demoOrgName,
+          hostname: demoHostname,
+          threat_name: demoThreatName,
+          severity: demoSeverity,
+          risk_score: parseFloat(demoRiskScore) > 1 ? parseFloat(demoRiskScore) / 100 : parseFloat(demoRiskScore),
+          confidence: demoConfidence,
+          affected_user: demoAffectedUser,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || data.success === false) {
+        let errorDetail = 'Failed to send demo email'
+        if (typeof data.detail === 'object' && data.detail !== null) {
+          errorDetail = data.detail.error || data.detail.message || JSON.stringify(data.detail)
+        } else if (data.error) {
+          errorDetail = data.error
+        } else if (data.detail) {
+          errorDetail = data.detail
+        }
+        setDemoEmailStatus({
+          success: false,
+          error: errorDetail,
+        })
+      } else {
+        setDemoEmailStatus({
+          success: true,
+          message: data.message || '✅ Demo email sent successfully.',
+        })
+      }
+    } catch (err) {
+      setDemoEmailStatus({
+        success: false,
+        error: err.message || 'Network connection failed while reaching backend.',
+      })
+    } finally {
+      setDemoEmailSending(false)
+    }
+  }
 
   // Dropdown open state for organization rows: { [orgId]: boolean }
   const [openDropdownId, setOpenDropdownId] = useState(null)
@@ -341,6 +408,41 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
 
           {/* Email Notification Center Bell */}
           <NotificationCenter userEmail={currentUser?.email} />
+
+          {/* Send Demo Security Email Button */}
+          <button
+            onClick={() => {
+              setDemoRecipient(currentUser?.email || 'admin@cipherwatch.local')
+              setDemoOrgName(selectedOrgForDetails?.name || selectedOrg?.name || 'HackIT Demo')
+              setDemoEmailStatus(null)
+              setIsDemoEmailModalOpen(true)
+            }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(252, 213, 53, 0.18) 0%, rgba(99, 102, 241, 0.18) 100%)',
+              border: '1px solid rgba(252, 213, 53, 0.45)',
+              color: '#ffe066',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 0 12px rgba(252, 213, 53, 0.2)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(252, 213, 53, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(252, 213, 53, 0.2)'
+            }}
+          >
+            📧 Send Demo Security Email
+          </button>
 
           <button
             onClick={() => setIsSwitchOrgModalOpen(true)}
@@ -1318,9 +1420,374 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
           if (onSelectOrg) onSelectOrg(newOrgItem)
         }}
       />
+
+      {/* ------------------------------------------------------------- */}
+      {/* DEMO SECURITY EMAIL MODAL                                     */}
+      {/* ------------------------------------------------------------- */}
+      {isDemoEmailModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => !demoEmailSending && setIsDemoEmailModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: 'linear-gradient(135deg, #1e2329 0%, #15191e 100%)',
+              border: '1px solid #fcd535',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 0 35px rgba(252, 213, 53, 0.25), 0 20px 50px rgba(0, 0, 0, 0.8)',
+              position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              animation: 'scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsDemoEmailModalOpen(false)}
+              disabled={demoEmailSending}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: 'none',
+                color: '#94a3b8',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                cursor: demoEmailSending ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Modal Title */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#fcd535', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                SOC Administrative Diagnostics
+              </div>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#ffffff' }}>
+                📧 Send Demo Security Email
+              </h2>
+            </div>
+
+            {/* Status Messages */}
+            {demoEmailStatus?.success && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(14, 203, 129, 0.15)',
+                  border: '1px solid rgba(14, 203, 129, 0.4)',
+                  borderRadius: '8px',
+                  color: '#0ecb81',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <CheckCircle size={16} />
+                <span>✅ Demo email sent successfully.</span>
+              </div>
+            )}
+
+            {demoEmailStatus?.error && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '14px 16px',
+                  backgroundColor: 'rgba(246, 70, 93, 0.15)',
+                  border: '1px solid rgba(246, 70, 93, 0.4)',
+                  borderRadius: '8px',
+                  color: '#f6465d',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  lineHeight: '1.4',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                <XCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '2px', color: '#ff6b7a' }}>Error Details:</strong>
+                  {demoEmailStatus.error}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Form */}
+            <form onSubmit={handleSendDemoEmail} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Recipient Email *
+                </label>
+                <input
+                  type="email"
+                  value={demoRecipient}
+                  onChange={(e) => setDemoRecipient(e.target.value)}
+                  required
+                  placeholder="admin@cipherwatch.local"
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#070a12',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Organization
+                  </label>
+                  <input
+                    type="text"
+                    value={demoOrgName}
+                    onChange={(e) => setDemoOrgName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#070a12',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Hostname
+                  </label>
+                  <input
+                    type="text"
+                    value={demoHostname}
+                    onChange={(e) => setDemoHostname(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#070a12',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Threat Name
+                </label>
+                <input
+                  type="text"
+                  value={demoThreatName}
+                  onChange={(e) => setDemoThreatName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#070a12',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Severity
+                  </label>
+                  <select
+                    value={demoSeverity}
+                    onChange={(e) => setDemoSeverity(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#070a12',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#f6465d',
+                      fontWeight: '800',
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="CRITICAL">CRITICAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="INFO">INFO</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Risk Score
+                  </label>
+                  <input
+                    type="number"
+                    value={demoRiskScore}
+                    onChange={(e) => setDemoRiskScore(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#070a12',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Confidence
+                  </label>
+                  <input
+                    type="text"
+                    value={demoConfidence}
+                    onChange={(e) => setDemoConfidence(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#070a12',
+                      border: '1px solid var(--colors-hairline-on-dark)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Affected User
+                </label>
+                <input
+                  type="text"
+                  value={demoAffectedUser}
+                  onChange={(e) => setDemoAffectedUser(e.target.value)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#070a12',
+                    border: '1px solid var(--colors-hairline-on-dark)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Form Buttons */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDemoEmailModalOpen(false)}
+                  disabled={demoEmailSending}
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#94a3b8',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: demoEmailSending ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={demoEmailSending}
+                  style={{
+                    flex: 2,
+                    background: demoEmailSending
+                      ? '#334155'
+                      : 'linear-gradient(135deg, #ffe066 0%, #fcd535 50%, #f0b90b 100%)',
+                    color: demoEmailSending ? '#94a3b8' : '#070a12',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    cursor: demoEmailSending ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: demoEmailSending ? 'none' : '0 4px 14px rgba(252, 213, 53, 0.3)',
+                  }}
+                >
+                  {demoEmailSending ? (
+                    <>
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} /> Send Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* KEYFRAME ANIMATIONS                                           */}
       {/* ------------------------------------------------------------- */}
       <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         @keyframes pulsateRedGlow {
           0% {
             border: 1px solid rgba(246, 70, 93, 0.4);

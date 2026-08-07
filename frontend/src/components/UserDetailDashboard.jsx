@@ -128,6 +128,18 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
           setNetworkLogs(mappedAlerts)
         }
 
+        // Map real USB events from backend database
+        if (Array.isArray(detail.recent_usb_events) && detail.recent_usb_events.length > 0) {
+          const mappedUsb = detail.recent_usb_events.map((u, idx) => ({
+            id: `usb-${u.id || idx}`,
+            timestamp: u.timestamp ? new Date(u.timestamp).toLocaleString() : 'Recent',
+            severity: (u.action === 'connected' || u.action === 'ATTACH' || u.action === 'transfer') ? 'CRITICAL' : 'LOW',
+            desc: `USB MASS STORAGE ${(u.action || 'ATTACH').toUpperCase()}: ${u.device_name || 'Removable Storage Device'}`,
+            meta: `Vendor ID: ${u.vendor_id || 'N/A'} • Product ID: ${u.product_id || 'N/A'} • Mount: ${u.mount_point || 'Mounted'}`,
+          }))
+          setUsbLogs(mappedUsb)
+        }
+
         setIsLoadingLogs(false)
       })
       .catch((err) => {
@@ -252,9 +264,9 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
     }
 
     const isHighOrCriticalRisk = computedRisk >= 50
-    const hasOnlyLowLogs = !rawLogs || rawLogs.length === 0 || rawLogs.every(l => (l.severity || 'LOW') === 'LOW')
+    const hasNoLogs = !rawLogs || rawLogs.length === 0
 
-    if (isHighOrCriticalRisk && hasOnlyLowLogs) {
+    if (hasNoLogs && isHighOrCriticalRisk) {
       switch (activeTab) {
         case 'USB':
           rawLogs = [
