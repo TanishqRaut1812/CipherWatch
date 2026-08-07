@@ -57,10 +57,10 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
                 riskScore = 0
               } else if (critAlerts > 0) {
                 threatLevel = 'CRITICAL'
-                riskScore = Math.min(100, 75 + critAlerts * 10)
+                riskScore = Math.min(95, 88 + (critAlerts - 1) * 3)
               } else if (warnAlerts > 0) {
                 threatLevel = 'HIGH'
-                riskScore = Math.min(74, 45 + warnAlerts * 5)
+                riskScore = Math.min(75, 62 + (warnAlerts - 1) * 3)
               } else {
                 threatLevel = 'NOMINAL'
                 riskScore = 0

@@ -139,7 +139,7 @@ export default function OrganizationSwitchModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {organizations.map((org) => {
               const isSelected = org.id === currentOrgId
-              const risk = org.riskScore !== undefined ? org.riskScore : 15
+              const risk = org.riskScore !== undefined ? org.riskScore : 0
               const isHigh = risk >= 70
               const isMed = risk >= 40 && risk < 70
               const badgeColor = isHigh ? '#f6465d' : isMed ? '#fcd535' : '#0ecb81'
