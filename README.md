@@ -51,33 +51,46 @@ Featuring a standalone C-compiled/PyInstaller Linux endpoint daemon, a multi-ten
 
 ```mermaid
 flowchart TD
-    subgraph Endpoint ["Target Endpoint (Linux / macOS / Windows)"]
-        A1[Filesystem Monitor] --> AG[Agent Event Collector]
-        A2[Process Execution Monitor] --> AG
-        A3[USB Hardware Monitor] --> AG
-        A4[Network Egress Monitor] --> AG
-        AG -->|HTTPS / Bearer Auth Token| API[FastAPI Ingestion Backend]
+
+    subgraph Endpoint["Target Endpoint"]
+        FS[Filesystem Monitor]
+        PR[Process Monitor]
+        USB[USB Monitor]
+        NET[Network Monitor]
+
+        FS --> AGENT[CipherWatch Agent]
+        PR --> AGENT
+        USB --> AGENT
+        NET --> AGENT
     end
 
-    subgraph Backend ["CipherWatch Orchestration Engine"]
-        API --> DB[(Supabase PostgreSQL / SQLite)]
-        API --> Cache[In-Memory Auth & Session Cache]
-        DB --> TE[Threat Analytics Engine]
-        
-        subgraph Threat Engine ["Analytics & Scoring"]
-            TE --> ML[Isolation Forest & Baseline Anomaly Model]
-            TE --> SG[NetworkX Topological Session Graph]
-            TE --> Rules[Rule Engine & Risk Classifier]
+    AGENT -->|HTTPS + Bearer Token| API[FastAPI Backend]
+
+    subgraph Backend["CipherWatch Backend"]
+        API --> AUTH[Authentication Layer]
+        AUTH --> DB[(Supabase PostgreSQL)]
+
+        DB --> ANALYTICS[Threat Analytics]
+
+        subgraph Analytics["Analytics Engine"]
+            RULES[Rule Engine]
+            SESSION[Session Correlation]
+            RISK[Risk Scoring]
         end
-        
-        Threat Engine --> AlertEngine[Alert & Notification Service]
+
+        ANALYTICS --> RULES
+        ANALYTICS --> SESSION
+        ANALYTICS --> RISK
+
+        RULES --> ALERTS[Alert Service]
+        SESSION --> ALERTS
+        RISK --> ALERTS
     end
 
-    subgraph Operations ["SOC & Analyst Touchpoints"]
-        AlertEngine -->|Resend API| Email[Email Threat Notifications]
-        Backend -->|REST API / JSON| Dashboard[React SOC Dashboard]
-        Dashboard -->|SOC Analyst Actions| API
-    end
+    ALERTS --> EMAIL[Resend Email Notifications]
+    ALERTS --> DASHBOARD[React Dashboard]
+
+    DASHBOARD -->|REST API| API
 ```
 
 ---
