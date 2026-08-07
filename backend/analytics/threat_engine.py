@@ -255,6 +255,26 @@ class ThreatEngine:
             try:
                 rule_alerts = rule.evaluate(db, agent, payload)
                 for a in rule_alerts:
+                    # Deduplicate active alerts: check if an identical active alert exists within 1 hour
+                    cutoff_1h = datetime.utcnow() - timedelta(hours=1)
+                    existing_active = (
+                        db.query(AlertModel)
+                        .filter(
+                            AlertModel.agent_id == agent.id,
+                            AlertModel.rule_id == a["rule_id"],
+                            AlertModel.status == "ACTIVE",
+                            AlertModel.timestamp >= cutoff_1h,
+                        )
+                        .first()
+                    )
+                    if existing_active:
+                        logger.info(
+                            "Skipping duplicate active alert persistence for rule={} on host={} (active alert present in 1h window)",
+                            a["rule_id"],
+                            agent.hostname,
+                        )
+                        continue
+
                     alert_entry = AlertModel(
                         agent_id=agent.id,
                         device_id=agent.id,

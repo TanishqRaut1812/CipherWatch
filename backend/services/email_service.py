@@ -194,15 +194,15 @@ def send_high_threat_alert_email(
     if (severity or "").upper() != "CRITICAL":
         return False
 
-    # Cooldown check: prevent duplicate alert emails for same host/rule within 60s
+    # Cooldown check: prevent duplicate alert emails for same host/rule within 1 hour (3600s)
     now = time.time()
     for existing in SENT_EMAILS_LOG:
         if (
             existing.get("hostname") == hostname
             and existing.get("rule_id") == rule_id
-            and (now - existing.get("timestamp", 0)) < 60
+            and (now - existing.get("timestamp", 0)) < 3600
         ):
-            logger.info("Skipping duplicate CRITICAL email dispatch for host '{}' / rule '{}' (cooldown active)", hostname, rule_id)
+            logger.info("Skipping duplicate CRITICAL email dispatch for host '{}' / rule '{}' (1-hour cooldown active)", hostname, rule_id)
             return False
 
     api_key = settings.RESEND_API_KEY
