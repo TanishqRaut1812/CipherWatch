@@ -14,7 +14,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
   const currentOrg = org || {
     id: 'org-1',
     name: 'Default Organization',
-    riskScore: 15,
+    riskScore: 0,
     apiKey: '',
   }
 
@@ -59,10 +59,12 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
             const osLower = (a.os || '').toLowerCase()
             const osType = osLower.includes('mac') ? 'macos' : osLower.includes('win') ? 'windows' : 'linux'
             
-            let risk = 15
+            let risk = 0
             if (a.threat_level === 'critical') risk = 88
             else if (a.threat_level === 'warning' || a.threat_level === 'high') risk = 62
-            else if (a.active_alert_count > 0) risk = 45
+            else if (a.active_alert_count > 0) risk = Math.min(80, 25 + a.active_alert_count * 10)
+            else if (a.status === 'offline') risk = 15
+            else risk = 0
 
             return {
               id: a.id,
@@ -224,6 +226,14 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
       setUsers(users.map((u) => (u.id === id ? { ...u, name: updated.trim() } : u)))
     }
   }
+
+  // Dynamic aggregate threat score based on enrolled endpoints telemetry
+  const computedOrgRiskScore = useMemo(() => {
+    if (!users || users.length === 0) return 0
+    const maxRisk = Math.max(...users.map((u) => u.riskScore || 0))
+    const avgRisk = users.reduce((acc, u) => acc + (u.riskScore || 0), 0) / users.length
+    return Math.min(100, Math.round(maxRisk * 0.7 + avgRisk * 0.3))
+  }, [users])
 
   // Sorted Users
   const sortedUsers = useMemo(() => {
@@ -440,7 +450,7 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
       {/* ------------------------------------------------------------- */}
       <section style={{ padding: '24px 28px 12px 28px' }}>
         {(() => {
-          const score = currentOrg.riskScore ?? 0
+          const score = computedOrgRiskScore
           const isRed = score >= 70
           const isYellow = score >= 40 && score < 70
           const isGreen = score < 40
@@ -461,10 +471,12 @@ export default function OrganizationDashboard({ org, onBackToAdmin, currentUser,
             : isYellow
             ? '0 0 25px rgba(252, 213, 53, 0.25)'
             : '0 0 25px rgba(14, 203, 129, 0.25)'
-          const badgeText = isRed
+          const badgeText = users.length === 0
+            ? 'ZERO TELEMETRY / NO ENROLLED ENDPOINTS'
+            : isRed
             ? 'CRITICAL SECURITY THREAT WORKSPACE'
             : isYellow
-            ? 'MANAGED ORGANIZATION WORKSPACE'
+            ? 'ELEVATED SECURITY RISK WORKSPACE'
             : 'OPTIMAL SECURITY BASELINE WORKSPACE'
 
           return (

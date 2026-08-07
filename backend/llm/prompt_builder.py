@@ -14,7 +14,7 @@ def build_incident_prompt(session_data: Dict[str, Any]) -> str:
     session_id = session_data.get("session_id", "N/A")
     behavior = session_data.get("template_name") or session_data.get("reconstructed_intent") or "Nominal Baseline Activity"
     
-    raw_risk = session_data.get("risk_score", 15.0)
+    raw_risk = session_data.get("risk_score", 0.0)
     risk_score = round(raw_risk if raw_risk > 1.0 else raw_risk * 100.0, 1)
     confidence = round(session_data.get("confidence_score", 85.0), 1)
     current_stage = session_data.get("current_stage", 1)

@@ -39,7 +39,7 @@ export default function UserDetailDashboard({ user, org, onBackToOrg, currentUse
     email: 'endpoint@cipherwatch.internal',
     os: 'Linux / Enterprise',
     osType: 'linux',
-    riskScore: 15,
+    riskScore: 0,
     dateAdded: '2026-08-01',
     device: 'HOSTNAME-UNKNOWN',
     ipAddress: '127.0.0.1',

@@ -139,7 +139,7 @@ class BehavioralSession:
 
         # Initial metrics from stage 1
         st1 = self.stages[0] if self.stages else {}
-        self.risk_score = float(st1.get("risk", 15.0))
+        self.risk_score = float(st1.get("risk", 0.0))
         self.confidence_score = float(st1.get("confidence", 20.0))
 
         pred = st1.get("prediction", {})

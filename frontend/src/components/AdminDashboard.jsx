@@ -49,17 +49,21 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
               const critAlerts = stats?.summary?.critical_alerts ?? 0
               const warnAlerts = stats?.summary?.warning_alerts ?? 0
 
-              let threatLevel = 'LOW'
-              let riskScore = 15
-              if (critAlerts > 0) {
+              let threatLevel = 'NOMINAL'
+              let riskScore = 0
+
+              if (totalSystems === 0) {
+                threatLevel = 'NONE'
+                riskScore = 0
+              } else if (critAlerts > 0) {
                 threatLevel = 'CRITICAL'
-                riskScore = Math.min(95, 75 + critAlerts * 10)
+                riskScore = Math.min(100, 75 + critAlerts * 10)
               } else if (warnAlerts > 0) {
                 threatLevel = 'HIGH'
                 riskScore = Math.min(74, 45 + warnAlerts * 5)
-              } else if (totalSystems > 0) {
-                threatLevel = 'MEDIUM'
-                riskScore = 30
+              } else {
+                threatLevel = 'NOMINAL'
+                riskScore = 0
               }
 
               return {
@@ -78,8 +82,8 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
                 name: o.name,
                 role: o.role,
                 usersCount: 0,
-                threatLevel: 'LOW',
-                riskScore: 15,
+                threatLevel: 'NONE',
+                riskScore: 0,
                 dateAdded: '2026-01-01',
                 apiKey: `cwek_${o.id}`,
               }
@@ -161,8 +165,8 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
         name: createdOrg.name,
         role: createdOrg.role || 'owner',
         usersCount: 0,
-        threatLevel: 'LOW',
-        riskScore: 15,
+        threatLevel: 'NONE',
+        riskScore: 0,
         dateAdded: new Date().toISOString().split('T')[0],
         apiKey: creds?.enrollment_key || creds?.registration_key || `cwek_${createdOrg.id}`,
       }
@@ -1304,8 +1308,8 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
             name: created.name,
             role: created.role || 'owner',
             usersCount: 0,
-            threatLevel: 'LOW',
-            riskScore: 15,
+            threatLevel: 'NONE',
+            riskScore: 0,
             dateAdded: new Date().toISOString().split('T')[0],
             apiKey: creds?.enrollment_key || creds?.registration_key || `cwek_${created.id}`,
           }
