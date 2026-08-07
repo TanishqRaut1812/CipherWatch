@@ -299,12 +299,6 @@ CipherWatch is engineered under a foundational **Zero-Privacy Invasion Policy**.
 
 ---
 
-## 👥 Team
-
-- **Tanishq Raut** - Lead Architect & Core Backend Engineer
-- **CipherWatch Team** - Hackathon Contributors & Security Research
-
----
 
 ## 📄 License
 
