@@ -291,7 +291,7 @@ class ThreatEngine:
                     if owner and owner.email:
                         for alert in created_alerts:
                             sev = alert.severity.upper()
-                            if sev in ("CRITICAL", "HIGH", "WARNING"):
+                            if sev == "CRITICAL":
                                 send_high_threat_alert_email(
                                     admin_email=owner.email,
                                     org_name=org.name,

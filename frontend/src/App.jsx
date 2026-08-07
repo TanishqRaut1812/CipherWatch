@@ -6,6 +6,8 @@ import AnalystControls from './components/AnalystControls'
 import PrivacyBanner from './components/PrivacyBanner'
 import RiskChart from './components/RiskChart'
 import AdminDashboard from './components/AdminDashboard'
+import OrganizationDashboard from './components/OrganizationDashboard'
+import UserDetailDashboard from './components/UserDetailDashboard'
 import HeroBand from './components/HeroBand'
 import SessionGraphCard from './components/SessionGraphCard'
 import ZeroContentBand from './components/ZeroContentBand'
@@ -20,6 +22,7 @@ import LoginPage from './components/LoginPage'
 export default function App() {
 
   const [activeView, setActiveView] = useState('admin') // 'admin' | 'soc'
+  const [currentPage, setCurrentPage] = useState('ADMIN') // 'ADMIN' | 'ORGANIZATION' | 'USER_DETAIL'
   const [alerts, setAlerts] = useState([])
   const [selectedSession, setSelectedSession] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -32,6 +35,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [organizations, setOrganizations] = useState([])
   const [selectedOrg, setSelectedOrg] = useState(null)
+  const [selectedUser, setSelectedUser] = useState(null)
   const [authMode, setAuthMode] = useState('login') // 'login' | 'signup'
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
@@ -41,7 +45,73 @@ export default function App() {
   const [orgName, setOrgName] = useState('')
   const [newOrgName, setNewOrgName] = useState('')
 
-  // Check if session cookie is valid on load
+  // Navigation helper that updates React state AND synchronizes HTML5 browser history (pushState)
+  const navigateToPage = (page, org = selectedOrg, user = selectedUser, replace = false) => {
+    setCurrentPage(page)
+    setSelectedOrg(org)
+    setSelectedUser(user)
+
+    let path = '/admin'
+    if (page === 'ADMIN') {
+      path = '/admin'
+    } else if (page === 'ORGANIZATION' && org) {
+      path = `/orgs/${org.id}`
+    } else if (page === 'USER_DETAIL' && user) {
+      path = `/orgs/${org?.id || 'default'}/users/${user.id}`
+    }
+
+    const stateData = { page, orgId: org?.id, user, userId: user?.id }
+    if (replace) {
+      window.history.replaceState(stateData, '', path)
+    } else {
+      window.history.pushState(stateData, '', path)
+    }
+  }
+
+  // Listen for browser Back & Forward navigation (popstate event)
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state
+      if (state && state.page) {
+        setCurrentPage(state.page)
+        if (state.orgId) {
+          const found = organizations.find((o) => o.id === state.orgId) || { id: state.orgId, name: 'Workspace ' + state.orgId, role: 'member' }
+          setSelectedOrg(found)
+        } else if (state.page === 'ADMIN') {
+          setSelectedOrg(null)
+        }
+        if (state.user) {
+          setSelectedUser(state.user)
+        } else {
+          setSelectedUser(null)
+        }
+      } else {
+        const path = window.location.pathname
+        const parts = path.split('/').filter(Boolean)
+        if (parts[0] === 'orgs' && parts[1]) {
+          const orgId = parts[1]
+          const matchedOrg = organizations.find((o) => o.id === orgId) || { id: orgId, name: 'Workspace ' + orgId, role: 'member' }
+          setSelectedOrg(matchedOrg)
+          if (parts[2] === 'users' && parts[3]) {
+            const userId = parts[3]
+            setSelectedUser({ id: userId, name: userId, email: `${userId}@cipherwatch.io`, os: 'Linux Enterprise', riskScore: 75 })
+            setCurrentPage('USER_DETAIL')
+          } else {
+            setCurrentPage('ORGANIZATION')
+          }
+        } else {
+          setCurrentPage('ADMIN')
+          setSelectedOrg(null)
+          setSelectedUser(null)
+        }
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [organizations])
+
+  // Check if session cookie is valid on load & restore page state from URL on refresh
   useEffect(() => {
     fetch('/api/auth/me')
       .then((res) => {
@@ -53,12 +123,35 @@ export default function App() {
         return fetch('/api/orgs').then((res) => res.json())
       })
       .then((orgs) => {
-        setOrganizations(orgs || [])
-        if (orgs && orgs.length > 0) {
-          if (orgs.length === 1) {
-            setSelectedOrg(orgs[0])
+        const fetchedOrgs = orgs || []
+        setOrganizations(fetchedOrgs)
+
+        // Restore route & state from URL path on page refresh (F5)
+        const path = window.location.pathname
+        const parts = path.split('/').filter(Boolean)
+
+        if (parts[0] === 'orgs' && parts[1]) {
+          const orgId = parts[1]
+          const matchedOrg = fetchedOrgs.find((o) => o.id === orgId) || { id: orgId, name: 'Workspace ' + orgId, role: 'member' }
+          setSelectedOrg(matchedOrg)
+
+          if (parts[2] === 'users' && parts[3]) {
+            const userId = parts[3]
+            const uObj = { id: userId, name: userId, email: `${userId}@cipherwatch.io`, os: 'Linux Enterprise', riskScore: 75 }
+            setSelectedUser(uObj)
+            setCurrentPage('USER_DETAIL')
+            window.history.replaceState({ page: 'USER_DETAIL', orgId: matchedOrg.id, user: uObj, userId }, '', path)
+          } else {
+            setCurrentPage('ORGANIZATION')
+            window.history.replaceState({ page: 'ORGANIZATION', orgId: matchedOrg.id, user: null }, '', path)
           }
+        } else {
+          setCurrentPage('ADMIN')
+          setSelectedOrg(null)
+          setSelectedUser(null)
+          window.history.replaceState({ page: 'ADMIN', orgId: null, user: null }, '', '/admin')
         }
+
         setAuthLoading(false)
       })
       .catch(() => {
@@ -123,11 +216,8 @@ export default function App() {
       })
       .then((orgs) => {
         setOrganizations(orgs || [])
-        if (orgs && orgs.length > 0) {
-          if (orgs.length === 1) {
-            setSelectedOrg(orgs[0])
-          }
-        }
+        setCurrentPage('ADMIN')
+        setSelectedOrg(null)
         setAuthLoading(false)
       })
       .catch((err) => {
@@ -162,11 +252,8 @@ export default function App() {
       })
       .then((orgs) => {
         setOrganizations(orgs || [])
-        if (orgs && orgs.length > 0) {
-          if (orgs.length === 1) {
-            setSelectedOrg(orgs[0])
-          }
-        }
+        setCurrentPage('ADMIN')
+        setSelectedOrg(null)
         setAuthLoading(false)
       })
       .catch((err) => {
@@ -307,132 +394,45 @@ export default function App() {
   }
 
 
-  // 3. Authenticated but workspace not selected: Org Selector
-  if (!selectedOrg) {
+
+
+  // 4. Authenticated: Multi-Page Router (Admin, Organization, User Detail)
+  if (currentPage === 'ADMIN' || !selectedOrg) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--colors-canvas-dark)' }}>
-        <PrivacyBanner />
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px 24px'
-        }}>
-          <div className="alert-feed-card" style={{
-            width: '100%',
-            maxWidth: '520px',
-            padding: '40px',
-            backgroundColor: 'var(--colors-surface-card-dark)',
-            border: '1px solid var(--colors-hairline-on-dark)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h2 className="display-sm" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>Select Workspace</h2>
-              <span className="badge badge-info">{currentUser.username}</span>
-            </div>
-            <p className="body-sm" style={{ color: 'var(--colors-muted-strong)', marginBottom: '32px' }}>
-              Please select a workspace organization to begin telemetry ingestion and fleet monitoring.
-            </p>
-
-            {authError && (
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: 'var(--rounded-md)',
-                background: 'rgba(246, 70, 93, 0.1)',
-                border: '1px solid rgba(246, 70, 93, 0.3)',
-                color: 'var(--colors-risk-escalating)',
-                fontSize: '13px',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
-                <AlertTriangle size={16} style={{ flexShrink: 0 }} /> {authError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
-              {organizations.map((org) => (
-                <div
-                  key={org.id}
-                  onClick={() => setSelectedOrg(org)}
-                  style={{
-                    padding: '18px 24px',
-                    borderRadius: 'var(--rounded-md)',
-                    backgroundColor: 'var(--colors-canvas-dark)',
-                    border: '1px solid var(--colors-hairline-on-dark)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--colors-primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--colors-hairline-on-dark)';
-                  }}
-                >
-                  <div>
-                    <h3 className="title-md" style={{ color: 'var(--colors-on-dark)', margin: 0 }}>{org.name}</h3>
-                    <span className="body-sm" style={{ color: 'var(--colors-muted)', marginTop: '4px', display: 'inline-block' }}>
-                      Authorization level: <strong style={{ color: 'var(--colors-primary)' }}>{org.role.toUpperCase()}</strong>
-                    </span>
-                  </div>
-                  <span style={{ color: 'var(--colors-primary)', fontSize: '13px', fontWeight: '600' }}>
-                    Select Workspace
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{
-              borderTop: '1px solid var(--colors-hairline-on-dark)',
-              paddingTop: '24px'
-            }}>
-              <h4 className="title-sm" style={{ color: 'var(--colors-on-dark)', marginBottom: '12px' }}>Initialize Additional Workspace</h4>
-              <form onSubmit={handleCreateOrg} style={{ display: 'flex', gap: '12px' }}>
-                <input
-                  type="text"
-                  className="input-text"
-                  placeholder="e.g. Acme EMEA Security"
-                  value={newOrgName}
-                  onChange={(e) => setNewOrgName(e.target.value)}
-                  required
-                />
-                <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                  Create
-                </button>
-              </form>
-            </div>
-
-            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={handleLogout}
-                className="btn-secondary"
-                style={{ height: '36px', padding: '0 16px', fontSize: '12px' }}
-              >
-                Sign Out Account
-              </button>
-            </div>
-          </div>
-        </div>
-        <FooterLight />
-      </div>
+      <AdminDashboard
+        orgId={selectedOrg?.id}
+        selectedOrg={selectedOrg}
+        organizations={organizations}
+        currentUser={currentUser}
+        onSelectOrg={(org) => navigateToPage('ORGANIZATION', org, null)}
+        onLogout={handleLogout}
+        onSwitchOrg={() => navigateToPage('ADMIN', null, null)}
+      />
     )
   }
 
-  // 4. Authenticated & Selected workspace: Full Dashboard Layout
+  if (currentPage === 'USER_DETAIL' && selectedUser) {
+    return (
+      <UserDetailDashboard
+        user={selectedUser}
+        org={selectedOrg}
+        onBackToOrg={() => navigateToPage('ORGANIZATION', selectedOrg, null)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
   return (
-    <AdminDashboard
-      orgId={selectedOrg.id}
-      selectedOrg={selectedOrg}
-      organizations={organizations}
+    <OrganizationDashboard
+      org={selectedOrg}
+      onBackToAdmin={() => navigateToPage('ADMIN', null, null)}
       currentUser={currentUser}
-      onSelectOrg={(org) => setSelectedOrg(org)}
       onLogout={handleLogout}
-      onSwitchOrg={() => setSelectedOrg(null)}
+      onSwitchOrg={(org) => navigateToPage('ORGANIZATION', org, null)}
+      organizations={organizations}
+      onSelectOrg={(org) => navigateToPage('ORGANIZATION', org, null)}
+      onSelectUser={(user) => navigateToPage('USER_DETAIL', selectedOrg, user)}
     />
   )
 }

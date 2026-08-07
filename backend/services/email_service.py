@@ -173,8 +173,9 @@ SENT_EMAILS_LOG = []
 
 
 def get_sent_emails_log():
-    """Retrieve all recorded email notifications ordered by newest first."""
-    return sorted(SENT_EMAILS_LOG, key=lambda x: x.get("timestamp", 0), reverse=True)
+    """Retrieve all recorded email notifications ordered by newest first (strictly CRITICAL)."""
+    critical_logs = [x for x in SENT_EMAILS_LOG if (x.get("severity") or "").upper() == "CRITICAL"]
+    return sorted(critical_logs, key=lambda x: x.get("timestamp", 0), reverse=True)
 
 
 def send_high_threat_alert_email(
@@ -189,6 +190,21 @@ def send_high_threat_alert_email(
     alert_time: Optional[str] = None,
 ) -> bool:
     """Send high threat alert email via Resend API and log to notification engine."""
+    # Enforce strictly CRITICAL severity for email dispatch
+    if (severity or "").upper() != "CRITICAL":
+        return False
+
+    # Cooldown check: prevent duplicate alert emails for same host/rule within 60s
+    now = time.time()
+    for existing in SENT_EMAILS_LOG:
+        if (
+            existing.get("hostname") == hostname
+            and existing.get("rule_id") == rule_id
+            and (now - existing.get("timestamp", 0)) < 60
+        ):
+            logger.info("Skipping duplicate CRITICAL email dispatch for host '{}' / rule '{}' (cooldown active)", hostname, rule_id)
+            return False
+
     api_key = settings.RESEND_API_KEY
     sender = settings.SENDER_EMAIL or "CipherWatch Security <onboarding@resend.dev>"
     subject = f"🚨 [{severity.upper()} THREAT DETECTED] Host '{hostname}' in {org_name}"

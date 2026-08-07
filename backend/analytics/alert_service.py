@@ -50,7 +50,7 @@ class AlertService:
         db.commit()
         db.refresh(alert)
 
-        if severity in ("CRITICAL", "HIGH"):
+        if severity == "CRITICAL":
             try:
                 from backend.db.models import AgentModel, OrganizationModel, UserModel
                 from backend.services.email_service import send_high_threat_alert_email

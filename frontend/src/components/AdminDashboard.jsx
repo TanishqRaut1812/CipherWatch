@@ -208,22 +208,7 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
     })
   }, [organizations, sortBy])
 
-  if (selectedOrgForDetails) {
-    return (
-      <OrganizationDashboard
-        org={selectedOrgForDetails}
-        onBackToAdmin={() => setSelectedOrgForDetails(null)}
-        currentUser={currentUser}
-        onLogout={onLogout}
-        onSwitchOrg={onSwitchOrg}
-        organizations={organizations}
-        onSelectOrg={(org) => {
-          setSelectedOrgForDetails(org)
-          if (onSelectOrg) onSelectOrg(org)
-        }}
-      />
-    )
-  }
+
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#070a12', color: '#e2e8f0', fontFamily: 'Inter, -apple-system, sans-serif' }}>
@@ -711,7 +696,10 @@ export default function AdminDashboard({ orgId, selectedOrg, currentUser, onLogo
                 return (
                   <div
                     key={org.id}
-                    onClick={() => setSelectedOrgForDetails(org)}
+                    onClick={() => {
+                      if (onSelectOrg) onSelectOrg(org)
+                      else setSelectedOrgForDetails(org)
+                    }}
                     style={{
                       backgroundColor: 'var(--colors-surface-card-dark)',
                       border: '1px solid var(--colors-hairline-on-dark)',
