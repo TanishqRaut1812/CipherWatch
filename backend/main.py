@@ -11,15 +11,19 @@ from backend.routes.auth_routes import router as auth_router, org_router
 from backend.routes.notifications import router as notifications_router
 from backend.routes.behavioral import router as behavioral_router
 
-# Initialize SQL tables
+from backend.profiler import PerformanceProfilingMiddleware, setup_sqlalchemy_profiling
+
+# Initialize SQL tables & performance profiler
 Base.metadata.create_all(bind=engine)
-logger.info("Database tables initialized successfully.")
+setup_sqlalchemy_profiling(engine)
+logger.info("Database tables and performance profiler initialized successfully.")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     debug=settings.DEBUG,
 )
+app.add_middleware(PerformanceProfilingMiddleware)
 
 logger.info("Starting CipherWatch FastAPI Application (v{})", settings.VERSION)
 

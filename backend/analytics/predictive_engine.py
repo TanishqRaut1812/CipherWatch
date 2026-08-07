@@ -279,19 +279,41 @@ class PredictiveBehaviorEngine:
     def reload_templates(self) -> int:
         return self.loader.load_templates()
 
-    def process_event(self, db: Session, event_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Process incoming telemetry event against all behavioral sessions & templates."""
+    def load_active_sessions(self, db: Session, agent_id: Optional[str] = None):
+        """Load active behavioral sessions from DB into memory exactly ONCE per payload batch."""
+        self._sweep_inactive_sessions(db)
+        if db:
+            query = db.query(BehavioralSessionModel).filter(BehavioralSessionModel.status == "active")
+            if agent_id:
+                query = query.filter(BehavioralSessionModel.agent_id == agent_id)
+            db_sessions = query.all()
+            for ds in db_sessions:
+                if ds.session_id not in self.active_sessions:
+                    tpl = self.loader.get_template(ds.template_id)
+                    if tpl:
+                        bs = BehavioralSession(tpl, ds.agent_id, ds.user_id, ds.org_id, ds.device_id)
+                        bs.session_id = ds.session_id
+                        bs.current_stage = ds.current_stage
+                        bs.risk_score = ds.risk_score
+                        bs.confidence_score = ds.confidence_score
+                        bs.predicted_next_action = ds.predicted_next_action or "Unknown"
+                        bs.predicted_probability = ds.predicted_probability
+                        bs.estimated_time_seconds = ds.estimated_time_seconds
+                        bs.mitre_techniques = ds.mitre_techniques_json or []
+                        bs.recent_events = ds.recent_events_json or []
+                        bs.status = ds.status
+                        self.active_sessions[bs.session_id] = bs
+
+    def _evaluate_event_in_memory(self, event_data: Dict[str, Any]) -> List[BehavioralSession]:
+        """Evaluate a single telemetry event against in-memory active sessions and templates."""
         agent_id = event_data.get("agent_id") or "agent_default"
         user_id = event_data.get("user_id") or "user_default"
         org_id = event_data.get("org_id")
         device_id = event_data.get("device_id") or "unknown_device"
 
-        # 1. Sweep inactive sessions
-        self._sweep_inactive_sessions(db)
-
         updated_sessions: List[BehavioralSession] = []
 
-        # 2. Check event against existing active sessions for stage progression
+        # 1. Check event against existing active sessions for stage progression
         for sess_id, sess in list(self.active_sessions.items()):
             if sess.agent_id == agent_id and sess.status == "active":
                 next_stage_idx = sess.current_stage  # 0-indexed next stage
@@ -299,10 +321,9 @@ class PredictiveBehaviorEngine:
                     next_stage_spec = sess.stages[next_stage_idx]
                     if EventStageMatcher.matches_stage(event_data, next_stage_spec):
                         sess.advance_stage(event_data, next_stage_idx)
-                        self._persist_session(db, sess)
                         updated_sessions.append(sess)
 
-        # 3. Check event against Stage 1 of ALL templates to initiate new sessions
+        # 2. Check event against Stage 1 of ALL templates to initiate new sessions
         all_templates = self.loader.get_all_templates()
         for tpl in all_templates:
             stages = tpl.get("stages", [])
@@ -326,10 +347,45 @@ class PredictiveBehaviorEngine:
                     )
                     new_sess._add_recent_event(event_data, f"Initiated Stage 1: {stage1_spec.get('name')}")
                     self.active_sessions[new_sess.session_id] = new_sess
-                    self._persist_session(db, new_sess)
                     updated_sessions.append(new_sess)
 
-        return [s.to_dict() for s in updated_sessions]
+        return updated_sessions
+
+    def process_events_batch(self, db: Session, events_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Process a batch of telemetry events using a single active-session DB lookup and batch persistence."""
+        if not events_list:
+            return []
+
+        agent_id = events_list[0].get("agent_id") if events_list else None
+
+        # 1. Load active sessions ONCE per payload batch
+        self.load_active_sessions(db, agent_id=agent_id)
+
+        all_updated: List[BehavioralSession] = []
+
+        # 2. Process all events against in-memory active sessions and templates
+        for event_data in events_list:
+            updated_single = self._evaluate_event_in_memory(event_data)
+            for s in updated_single:
+                if s not in all_updated:
+                    all_updated.append(s)
+
+        # 3. Persist all updated sessions once at the end of the payload batch
+        for sess in all_updated:
+            self._persist_session(db, sess, commit=False)
+
+        if all_updated and db:
+            try:
+                db.commit()
+            except Exception as e:
+                logger.error(f"Error committing batch behavioral sessions: {e}")
+                db.rollback()
+
+        return [s.to_dict() for s in all_updated]
+
+    def process_event(self, db: Session, event_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Process incoming telemetry event against all behavioral sessions & templates."""
+        return self.process_events_batch(db, [event_data])
 
     def get_active_sessions(self, db: Session, org_id: Optional[str] = None, agent_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieve active behavioral sessions from memory & DB."""
@@ -371,9 +427,9 @@ class PredictiveBehaviorEngine:
             if sess.status == "active":
                 expired = sess.apply_inactivity_decay(timeout_minutes=15)
                 if expired:
-                    self._persist_session(db, sess)
+                    self._persist_session(db, sess, commit=True)
 
-    def _persist_session(self, db: Session, sess: BehavioralSession):
+    def _persist_session(self, db: Session, sess: BehavioralSession, commit: bool = True):
         """Persist or update behavioral session in SQLAlchemy database."""
         if not db:
             return
@@ -407,10 +463,12 @@ class PredictiveBehaviorEngine:
             if sess.status != "active":
                 db_sess.closed_at = datetime.utcnow()
 
-            db.commit()
+            if commit:
+                db.commit()
         except Exception as e:
             logger.error(f"Error persisting behavioral session {sess.session_id}: {e}")
-            db.rollback()
+            if commit:
+                db.rollback()
 
 
 # Global Singleton Instance

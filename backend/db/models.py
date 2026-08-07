@@ -307,7 +307,11 @@ class AlertModel(Base):
     analyst_feedback = Column(String(32), default="UNREVIEWED", nullable=False)
     feedback_comments = Column(Text, nullable=True)
 
-    __table_args__ = (Index("idx_alerts_agent_ts", "agent_id", "timestamp"),)
+    __table_args__ = (
+        Index("idx_alerts_agent_ts", "agent_id", "timestamp"),
+        Index("idx_alerts_agent_ack", "agent_id", "acknowledged"),
+        Index("idx_alerts_status", "status"),
+    )
 
     agent = relationship("AgentModel", back_populates="alerts")
 

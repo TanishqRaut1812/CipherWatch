@@ -9,7 +9,11 @@ export default function NotificationCenter({ userEmail }) {
   const [filter, setFilter] = useState('ALL') // 'ALL' | 'CRITICAL'
   const popoverRef = useRef(null)
 
+  const inFlightRef = useRef(false)
+
   const fetchNotifications = () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     fetch('/api/notifications/emails')
       .then((res) => (res.ok ? res.json() : { notifications: [], unread_count: 0 }))
       .then((data) => {
@@ -17,13 +21,23 @@ export default function NotificationCenter({ userEmail }) {
         setUnreadCount(data.unread_count || 0)
       })
       .catch((err) => console.error('Failed to fetch notifications:', err))
+      .finally(() => {
+        inFlightRef.current = false
+      })
   }
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 5000)
+    const interval = setInterval(fetchNotifications, 30000) // Poll every 30 seconds
     return () => clearInterval(interval)
   }, [])
+
+  // Refresh notifications when panel is opened
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications()
+    }
+  }, [isOpen])
 
   // Close dropdown on outside click
   useEffect(() => {

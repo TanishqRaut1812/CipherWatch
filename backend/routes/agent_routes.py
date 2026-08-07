@@ -20,6 +20,7 @@ from backend.db.models import (
 )
 from backend.db.session import get_db
 from backend.user_auth import get_current_user, require_org_membership
+from backend.agent_auth_cache import agent_auth_cache
 from backend.analytics.threat_engine import ThreatEngine
 from backend.analytics.predictive_engine import predictive_engine
 from backend.schemas.agent_schemas import (
@@ -64,7 +65,7 @@ def get_current_agent(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ) -> AgentModel:
-    """Validate Bearer auth token header for given agent ID."""
+    """Validate Bearer auth token header for given agent ID using TTL cache."""
     if not authorization or not authorization.startswith("Bearer "):
         logger.warning("Agent auth failure: agent_id={}, missing or malformed bearer header", id)
         raise HTTPException(
@@ -72,6 +73,13 @@ def get_current_agent(
             detail="Missing or malformed Authorization bearer header.",
         )
     token = authorization.split("Bearer ", 1)[1].strip()
+
+    # 1. Check TTL cache
+    cached_agent = agent_auth_cache.get(id, token, db)
+    if cached_agent:
+        return cached_agent
+
+    # 2. Cache Miss: Query PostgreSQL once
     agent = db.query(AgentModel).filter(AgentModel.id == id).first()
     if not agent:
         logger.warning("Agent auth failure: agent_id={} not found in database", id)
@@ -80,12 +88,16 @@ def get_current_agent(
             detail=f"Agent ID '{id}' not found.",
         )
 
+    # 3. Validate Token
     if not verify_token(token, agent.auth_token_hash):
         logger.warning("Agent auth failure: agent_id={}, invalid token hash", id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token for agent.",
         )
+
+    # 4. Success: Store in cache
+    agent = agent_auth_cache.put(id, token, agent, db)
     return agent
 
 
@@ -141,6 +153,7 @@ def ingest_agent_events(
 
     proc_events_count = 0
     proc_eval_data = []
+    proc_records = []
     for proc in payload.process_events:
         proc_rec = ProcessEventModel(
             agent_id=agent.id,
@@ -154,21 +167,26 @@ def ingest_agent_events(
             cpu_percent=proc.cpu_percent,
             mem_rss=proc.mem_rss,
         )
-        db.add(proc_rec)
-        db.flush()  # assign proc_rec.id
+        proc_records.append(proc_rec)
         proc_events_count += 1
-        proc_eval_data.append({
-            "db_id": proc_rec.id,
-            "event_type": proc.event_type,
-            "pid": proc.pid,
-            "name": proc.name,
-            "exe_path": proc.exe_path,
-            "cmdline": proc.cmdline,
-            "user": proc.user,
-        })
+
+    if proc_records:
+        db.add_all(proc_records)
+        db.flush()
+        for proc, proc_rec in zip(payload.process_events, proc_records):
+            proc_eval_data.append({
+                "db_id": proc_rec.id,
+                "event_type": proc.event_type,
+                "pid": proc.pid,
+                "name": proc.name,
+                "exe_path": proc.exe_path,
+                "cmdline": proc.cmdline,
+                "user": proc.user,
+            })
 
     fs_events_count = 0
     fs_eval_data = []
+    fs_records = []
     for fs in payload.fs_events:
         fs_rec = FSEventModel(
             agent_id=agent.id,
@@ -178,16 +196,19 @@ def ingest_agent_events(
             dest_path=fs.dest_path,
             is_directory=fs.is_directory,
         )
-        db.add(fs_rec)
+        fs_records.append(fs_rec)
         fs_events_count += 1
         fs_eval_data.append({
             "event_type": fs.event_type,
             "src_path": fs.src_path,
             "dest_path": fs.dest_path,
         })
+    if fs_records:
+        db.add_all(fs_records)
 
     usb_events_count = 0
     usb_eval_data = []
+    usb_records = []
     for usb in payload.usb_events:
         usb_rec = USBEventModel(
             agent_id=agent.id,
@@ -198,17 +219,21 @@ def ingest_agent_events(
             device_name=usb.device_name,
             mount_point=usb.mount_point,
         )
-        db.add(usb_rec)
-        db.flush()
+        usb_records.append(usb_rec)
         usb_events_count += 1
-        usb_eval_data.append({
-            "db_id": usb_rec.id,
-            "action": usb.action,
-            "vendor_id": usb.vendor_id,
-            "product_id": usb.product_id,
-            "device_name": usb.device_name,
-            "mount_point": usb.mount_point,
-        })
+
+    if usb_records:
+        db.add_all(usb_records)
+        db.flush()
+        for usb, usb_rec in zip(payload.usb_events, usb_records):
+            usb_eval_data.append({
+                "db_id": usb_rec.id,
+                "action": usb.action,
+                "vendor_id": usb.vendor_id,
+                "product_id": usb.product_id,
+                "device_name": usb.device_name,
+                "mount_point": usb.mount_point,
+            })
 
     raw_events_count = 0
     raw_eval_data = []
@@ -285,11 +310,11 @@ def ingest_agent_events(
             **raw.get("metadata", {})
         })
 
-    for ev in all_telemetry_events:
+    if all_telemetry_events:
         try:
-            predictive_engine.process_event(db, ev)
+            predictive_engine.process_events_batch(db, all_telemetry_events)
         except Exception as p_err:
-            logger.error(f"Error in predictive engine processing: {p_err}")
+            logger.error(f"Error in predictive engine batch processing: {p_err}")
 
     # Pass payload into threat engine rules
     threat_payload = {
@@ -542,6 +567,7 @@ def revoke_agent(
     
     db.delete(agent)
     db.commit()
+    agent_auth_cache.invalidate(id)
     
     logger.info("Agent revoked and deleted successfully: id={}, host={}", id, agent.hostname)
     return {"status": "success", "message": f"Agent {id} has been revoked successfully."}
