@@ -63,6 +63,26 @@ def list_systems(
 
     agents = query.order_by(AgentModel.last_seen_at.desc()).all()
     results = []
+    agent_ids = [a.id for a in agents]
+
+    # Pre-fetch all alerts for these agents in a single query (batching to solve N+1)
+    all_alerts = db.query(AlertModel).filter(AlertModel.agent_id.in_(agent_ids)).all() if agent_ids else []
+    alerts_by_agent: Dict[str, List[AlertModel]] = {}
+    for a in all_alerts:
+        alerts_by_agent.setdefault(a.agent_id, []).append(a)
+
+    # Pre-fetch recent metrics snapshots for these agents
+    all_metrics = (
+        db.query(MetricsSnapshotModel)
+        .filter(MetricsSnapshotModel.agent_id.in_(agent_ids))
+        .order_by(MetricsSnapshotModel.timestamp.desc())
+        .all()
+    ) if agent_ids else []
+    metrics_by_agent: Dict[str, List[MetricsSnapshotModel]] = {}
+    for m in all_metrics:
+        m_list = metrics_by_agent.setdefault(m.agent_id, [])
+        if len(m_list) < 10:
+            m_list.append(m)
 
     for agent in agents:
         computed_status = agent.get_status(threshold_seconds=90)
@@ -70,19 +90,13 @@ def list_systems(
         if status_filter and computed_status.lower() != status_filter.lower():
             continue
 
-        agent_alerts = db.query(AlertModel).filter(AlertModel.agent_id == agent.id).all()
+        agent_alerts = alerts_by_agent.get(agent.id, [])
         threat_level = compute_threat_level(agent_alerts)
 
         if threat_filter and threat_level.lower() != threat_filter.lower():
             continue
 
-        recent_metrics = (
-            db.query(MetricsSnapshotModel)
-            .filter(MetricsSnapshotModel.agent_id == agent.id)
-            .order_by(MetricsSnapshotModel.timestamp.desc())
-            .limit(10)
-            .all()
-        )
+        recent_metrics = list(metrics_by_agent.get(agent.id, []))
         recent_metrics.reverse()
 
         latest_metric = recent_metrics[-1] if recent_metrics else None

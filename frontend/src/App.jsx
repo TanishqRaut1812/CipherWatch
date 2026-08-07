@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import SessionTimeline from './components/SessionTimeline'
 import RiskBreakdown from './components/RiskBreakdown'
 import IncidentSummary from './components/IncidentSummary'
@@ -29,6 +29,7 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(true)
   const [alertTabFilter, setAlertTabFilter] = useState('ALL') // 'ALL' | 'CRITICAL' | 'WARNING'
   const [alertSortBy, setAlertSortBy] = useState('threat') // 'threat' | 'date'
+  const alertsInFlightRef = useRef(false)
 
 
   // Auth & Multi-Tenancy States
@@ -164,6 +165,8 @@ export default function App() {
     if (!currentUser || !selectedOrg) return
 
     const fetchAlerts = () => {
+      if (alertsInFlightRef.current) return
+      alertsInFlightRef.current = true
       fetch(`/api/alerts?org_id=${selectedOrg.id}`)
         .then((res) => {
           if (!res.ok) {
@@ -180,13 +183,16 @@ export default function App() {
           setIsConnected(false)
           setAlerts([])
         })
+        .finally(() => {
+          alertsInFlightRef.current = false
+        })
     }
 
     setLoading(true)
     fetchAlerts()
     setLoading(false)
 
-    const interval = setInterval(fetchAlerts, 10000)
+    const interval = setInterval(fetchAlerts, 20000) // Poll every 20s
     return () => clearInterval(interval)
   }, [currentUser, selectedOrg])
 

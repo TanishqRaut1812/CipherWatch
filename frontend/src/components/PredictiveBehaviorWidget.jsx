@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Zap, 
   ShieldAlert, 
@@ -23,13 +23,36 @@ export default function PredictiveBehaviorWidget({ orgId, agentId }) {
   const [simulating, setSimulating] = useState(false);
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions' | 'simulate' | 'templates'
 
-  // Fetch active sessions & templates
-  const fetchBehaviorData = async () => {
+  const inFlightSessionsRef = useRef(false);
+  const inFlightTemplatesRef = useRef(false);
+
+  // 1. Fetch static templates ONCE on mount
+  const fetchTemplates = async () => {
+    if (inFlightTemplatesRef.current) return;
+    inFlightTemplatesRef.current = true;
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const resTpl = await fetch('/api/behavioral-sessions/templates', { headers });
+      if (resTpl.ok) {
+        const dataTpl = await resTpl.json();
+        setTemplates(dataTpl.templates || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch behavior templates:", err);
+    } finally {
+      inFlightTemplatesRef.current = false;
+    }
+  };
 
-      // 1. Get active behavioral sessions
+  // 2. Fetch active sessions (polled every 5s)
+  const fetchSessions = async () => {
+    if (inFlightSessionsRef.current) return;
+    inFlightSessionsRef.current = true;
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       let sessUrl = '/api/behavioral-sessions/active';
       const params = new URLSearchParams();
       if (orgId) params.append('org_id', orgId);
@@ -44,23 +67,23 @@ export default function PredictiveBehaviorWidget({ orgId, agentId }) {
           setSelectedSessionId(data.sessions[0].session_id);
         }
       }
-
-      // 2. Get templates
-      const resTpl = await fetch('/api/behavioral-sessions/templates', { headers });
-      if (resTpl.ok) {
-        const dataTpl = await resTpl.json();
-        setTemplates(dataTpl.templates || []);
-      }
     } catch (err) {
-      console.error("Failed to fetch predictive behavior data:", err);
+      console.error("Failed to fetch predictive active sessions:", err);
     } finally {
       setLoading(false);
+      inFlightSessionsRef.current = false;
     }
   };
 
+  // Fetch static templates ONCE on mount
   useEffect(() => {
-    fetchBehaviorData();
-    const interval = setInterval(fetchBehaviorData, 5000); // Auto refresh every 5s
+    fetchTemplates();
+  }, []);
+
+  // Poll active sessions every 5s
+  useEffect(() => {
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 5000); // Auto refresh active sessions every 5s
     return () => clearInterval(interval);
   }, [orgId, agentId]);
 
@@ -94,7 +117,7 @@ export default function PredictiveBehaviorWidget({ orgId, agentId }) {
       });
 
       if (res.ok) {
-        await fetchBehaviorData();
+        await fetchSessions();
       }
     } catch (err) {
       console.error("Simulation error:", err);
@@ -232,7 +255,7 @@ export default function PredictiveBehaviorWidget({ orgId, agentId }) {
           </div>
 
           <button
-            onClick={fetchBehaviorData}
+            onClick={fetchSessions}
             style={{
               padding: '8px',
               backgroundColor: '#1e293b',

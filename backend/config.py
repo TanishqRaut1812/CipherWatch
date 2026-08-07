@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "cipherwatch_jwt_secret_key_change_in_production"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
+    SQLALCHEMY_ECHO: bool = False
 
     @property
     def normalized_database_url(self) -> str:

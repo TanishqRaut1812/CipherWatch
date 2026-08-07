@@ -10,7 +10,7 @@ connect_args = {"check_same_thread": False} if is_sqlite else {}
 
 engine_kwargs = {
     "connect_args": connect_args,
-    "echo": settings.DEBUG,
+    "echo": settings.SQLALCHEMY_ECHO,
 }
 
 if not is_sqlite:
